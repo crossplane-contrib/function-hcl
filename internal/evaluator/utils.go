@@ -326,6 +326,15 @@ func err2Diag(err error) *hcl.Diagnostic {
 	}
 }
 
+// err2DiagWithRange converts an error to a hcl.Diagnostic.
+func err2DiagWithRange(err error, r hcl.Range) *hcl.Diagnostic {
+	return &hcl.Diagnostic{
+		Severity: hcl.DiagError,
+		Summary:  err.Error(),
+		Subject:  &r,
+	}
+}
+
 // mapDiagnosticSeverity maps the severity of the diagnostics from src to dst.
 // This is a destructive operation, clone the diags before calling this function if you need the original.
 // nolint:unparam

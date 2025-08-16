@@ -42,17 +42,23 @@ const (
 	blockLocals    = "locals"
 	blockTemplate  = "template"
 	blockReady     = "ready"
+	blockFunction  = "function"
+	blockArg       = "arg"
 
-	attrBody      = "body"
-	attrCondition = "condition"
-	attrForEach   = "for_each"
-	attrName      = "name"
-	attrKey       = "key"
-	attrValue     = "value"
+	attrBody        = "body"
+	attrDescription = "description"
+	attrCondition   = "condition"
+	attrForEach     = "for_each"
+	attrName        = "name"
+	attrKey         = "key"
+	attrValue       = "value"
+	attrDefault     = "default"
 
 	blockLabelStatus     = "status"
 	blockLabelConnection = "connection"
 )
+
+const userFunctionInvokerName = "invoke"
 
 const (
 	reservedReq  = "req"

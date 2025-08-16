@@ -239,9 +239,36 @@ func (a *analyzer) checkStructure(body hcl.Body, s *hcl.BodySchema) hcl.Diagnost
 	return diags
 }
 
-func (e *Evaluator) doAnalyze(files ...File) hcl.Diagnostics {
+func (e *Evaluator) doAnalyze(files ...File) (finalErr hcl.Diagnostics) {
+	// note: when returning something using diags from this function, we sort by severity first
+	// this is in order to have at least one error show up in formatted errors.
+	defer func() {
+		finalErr = sortDiagsBySeverity(finalErr)
+	}()
+
+	a := newAnalyzer(e)
+
 	// parse all files
 	bodies, diags := e.toBodies(files)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	for _, body := range bodies {
+		diags = diags.Extend(a.checkStructure(body, topLevelSchema()))
+	}
+	if diags.HasErrors() {
+		return diags
+	}
+
+	content, ds := e.makeContent(bodies)
+	diags = diags.Extend(ds)
+	if diags.HasErrors() {
+		return diags
+	}
+
+	ctx, ds := e.processFunctions(content)
+	diags = diags.Extend(ds)
 	if diags.HasErrors() {
 		return diags
 	}
@@ -259,22 +286,10 @@ func (e *Evaluator) doAnalyze(files ...File) hcl.Diagnostics {
 		Credentials:    map[string]*fnv1.Credentials{},
 	}
 
-	ctx, err := e.makeVars(req)
+	ctx, err := e.makeVars(ctx, req)
 	if err != nil {
 		return []*hcl.Diagnostic{{Severity: hcl.DiagError, Summary: "internal error: setup dummy vars", Detail: err.Error()}}
 	}
 
-	a := newAnalyzer(e)
-	for _, body := range bodies {
-		diags = diags.Extend(a.checkStructure(body, topLevelSchema()))
-	}
-	if diags.HasErrors() {
-		return diags
-	}
-
-	content, diags := e.makeContent(bodies)
-	if diags.HasErrors() {
-		return diags
-	}
 	return a.analyze(ctx, content)
 }

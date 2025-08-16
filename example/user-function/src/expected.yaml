@@ -1,0 +1,46 @@
+apiVersion: example.com/v1
+kind: XS3Bucket
+metadata:
+  name: bucket-36f7e
+status:
+  conditions:
+    - type: Ready
+      lastTransitionTime: "2024-01-01T00:00:00Z"
+      message: "Unready resources: local-provider-config"
+      reason: Creating
+      status: "False"
+    - type: FullyResolved
+      lastTransitionTime: "2024-01-01T00:00:00Z"
+      message: "all items complete"
+      reason: AllItemsProcessed
+      status: "True"
+    - type: HclDiagnostics
+      lastTransitionTime: "2024-01-01T00:00:00Z"
+      message: "hcl.Diagnostics contains no warnings"
+      reason: Eval
+      status: "True"
+---
+apiVersion: kubernetes.crossplane.io/v1alpha1
+kind: Object
+metadata:
+ name: foo-foobar
+ generateName: bucket-36f7e-
+ annotations:
+  crossplane.io/composition-resource-name: local-provider-config
+ labels:
+  crossplane.io/composite: bucket-36f7e
+ ownerReferences:
+ - name: bucket-36f7e
+   apiVersion: example.com/v1
+   blockOwnerDeletion: true
+   controller: true
+   kind: XS3Bucket
+   uid: ""
+spec:
+ forProvider:
+  manifest:
+   apiVersion: kubernetes.crossplane.io/v1alpha1
+   kind: ProviderConfig
+ providerConfigRef:
+  name: default
+
