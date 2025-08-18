@@ -1,6 +1,9 @@
 package evaluator
 
-import "github.com/hashicorp/hcl/v2"
+import (
+	"github.com/crossplane-contrib/function-hcl/internal/evaluator/functions"
+	"github.com/hashicorp/hcl/v2"
+)
 
 // file that declares schemas for various blocks
 
@@ -14,6 +17,9 @@ var (
 		{Type: blockComposite, LabelNames: []string{"object"}},
 		{Type: blockContext},
 	}
+
+	topBlocks = append(baseGroupBlocks, hcl.BlockHeaderSchema{Type: blockFunction, LabelNames: []string{"name"}})
+
 	// applicable to resource and template blocks.
 	resourceBlocks = []hcl.BlockHeaderSchema{
 		{Type: blockLocals},
@@ -31,11 +37,13 @@ var schemasByBlockType = map[string]*hcl.BodySchema{
 	blockContext:   contextSchema(),
 	blockTemplate:  templateSchema(),
 	blockReady:     readySchema(),
+	blockFunction:  functions.FunctionSchema(),
+	blockArg:       functions.ArgSchema(),
 }
 
 func topLevelSchema() *hcl.BodySchema {
 	return &hcl.BodySchema{
-		Blocks: baseGroupBlocks,
+		Blocks: topBlocks,
 	}
 }
 

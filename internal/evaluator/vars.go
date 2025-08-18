@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/crossplane-contrib/function-hcl/internal/funcs"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/hashicorp/hcl/v2"
 	"github.com/pkg/errors"
@@ -56,7 +55,7 @@ func (e *Evaluator) trackBaseNames(observedResources map[string]any) (map[string
 	return ret, nil
 }
 
-func (e *Evaluator) makeVars(in *fnv1.RunFunctionRequest) (*hcl.EvalContext, error) {
+func (e *Evaluator) makeVars(parent *hcl.EvalContext, in *fnv1.RunFunctionRequest) (*hcl.EvalContext, error) {
 	// toObject converts a resource to an object after removing managed fields.
 	// This cuts the processing time needed to almost half,
 	// given that it is a lot of useless processing for getting the implied type of these fields.
@@ -135,11 +134,9 @@ func (e *Evaluator) makeVars(in *fnv1.RunFunctionRequest) (*hcl.EvalContext, err
 	topMap[reqObservedConnections] = cty.ObjectVal(collectionConnections)
 
 	// create a basic context with vars
-	ctx := &hcl.EvalContext{
-		Variables: DynamicObject{
-			reservedReq: cty.ObjectVal(topMap),
-		},
-		Functions: funcs.All(),
+	ctx := parent.NewChild()
+	ctx.Variables = DynamicObject{
+		reservedReq: cty.ObjectVal(topMap),
 	}
 	return ctx, err
 }

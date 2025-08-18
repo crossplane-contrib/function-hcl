@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/crossplane-contrib/function-hcl/internal/evaluator/functions"
 	"github.com/crossplane-contrib/function-hcl/internal/evaluator/locals"
 	"github.com/crossplane/crossplane-runtime/pkg/logging"
 	fn "github.com/crossplane/function-sdk-go"
@@ -43,6 +44,8 @@ const (
 	blockLocals    = locals.BlockLocals
 	blockTemplate  = "template"
 	blockReady     = "ready"
+	blockFunction  = functions.BlockFunction
+	blockArg       = functions.BlockArg
 
 	attrBody      = "body"
 	attrCondition = "condition"

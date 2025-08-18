@@ -11,3 +11,4 @@ List of examples:
 | [set-status](set-status/)                       | set composite status (resource status present) | [HCL](set-status/src/main.hcl) &raquo; [output](set-status/src/expected.yaml)                   |                      
 | [set-status-incomplete](set-status-incomplete/) | set composite status (resource status absent)  | [HCL](set-status/src/main.hcl) &raquo; [output](set-status/src/expected.yaml)                   |                      
 | [set-context](set-context/)                     | set context key                                | [HCL](set-context/src/main.hcl) &raquo; [output](set-context/src/expected.yaml)                 |
+| [user-function](user-function/)                 | user defined functions                         | [HCL](user-function/src/main.hcl) &raquo; [output](user-function/src/expected.yaml)             |

@@ -8,7 +8,7 @@ import (
 	"math/big"
 
 	"github.com/apparentlymart/go-cidr/cidr"
-	"github.com/crossplane-contrib/function-hcl/internal/funcs/ipaddr"
+	"github.com/crossplane-contrib/function-hcl/internal/evaluator/functions/internal/funcs/ipaddr"
 	"github.com/zclconf/go-cty/cty"
 	"github.com/zclconf/go-cty/cty/function"
 	"github.com/zclconf/go-cty/cty/gocty"

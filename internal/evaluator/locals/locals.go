@@ -60,7 +60,7 @@ func (l *Processor) evaluate(ctx *hcl.EvalContext, attrsList []hcl.Attributes) (
 			if _, ok := locals[name]; ok {
 				return nil, hclutils.ToErrorDiag(fmt.Sprintf("local %q: duplicate local declaration", name), "", attr.Range)
 			}
-			if hasVariable(ctx, name) {
+			if hclutils.HasVariable(ctx, name) {
 				return nil, hclutils.ToErrorDiag("attempt to shadow variable", name, attr.Range)
 			}
 			locals[name] = &exprDeps{expr: attr.Expr}
@@ -111,7 +111,7 @@ func (l *Processor) computeDeps(ctx *hcl.EvalContext, locals map[string]*exprDep
 			reference := dep.RootName()
 			if _, ok := locals[reference]; ok {
 				locals[name].deps = append(locals[name].deps, reference)
-			} else if !hasVariable(ctx, reference) {
+			} else if !hclutils.HasVariable(ctx, reference) {
 				return hclutils.ToErrorDiag("reference to non-existent variable", reference, dep.SourceRange())
 			}
 		}
@@ -201,16 +201,4 @@ func (l *Processor) evalLocal(c *localContext, name string) hcl.Diagnostics {
 	// having evaluated it, update the context with the new kv.
 	c.ctx.Variables[name] = val
 	return diags
-}
-
-// hasVariable returns true if the supplied name is defined in the current or any ancestor context.
-func hasVariable(ctx *hcl.EvalContext, name string) bool {
-	c := ctx
-	for c != nil {
-		if _, ok := c.Variables[name]; ok {
-			return true
-		}
-		c = c.Parent()
-	}
-	return false
 }

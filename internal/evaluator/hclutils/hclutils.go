@@ -74,3 +74,15 @@ func ToErrorDiag(summary string, details string, r hcl.Range) hcl.Diagnostics {
 	}
 	return []*hcl.Diagnostic{ret}
 }
+
+// HasVariable returns true if the supplied name is defined in the current or any ancestor context.
+func HasVariable(ctx *hcl.EvalContext, name string) bool {
+	c := ctx
+	for c != nil {
+		if _, ok := c.Variables[name]; ok {
+			return true
+		}
+		c = c.Parent()
+	}
+	return false
+}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/crossplane-contrib/function-hcl/internal/evaluator/functions"
 	"github.com/crossplane-contrib/function-hcl/internal/evaluator/hclutils"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/hashicorp/hcl/v2"
@@ -18,27 +19,41 @@ const (
 	maxDiscardsToDisplay = 3
 )
 
-func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (*fnv1.RunFunctionResponse, error) {
+func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (_ *fnv1.RunFunctionResponse, finalErr error) {
 	// note: when returning something using diags from this function, we sort by severity first
 	// this is in order to have at least one error show up in formatted errors.
+	defer func() {
+		if finalErr != nil {
+			diags, ok := finalErr.(hcl.Diagnostics)
+			if ok {
+				finalErr = sortDiagsBySeverity(diags)
+			}
+		}
+	}()
 
 	// parse all files
 	mergedBody, diags := e.toContent(files)
 	if diags.HasErrors() {
-		return nil, sortDiagsBySeverity(diags)
+		return nil, diags
+	}
+
+	ctx, ds := e.processFunctions(mergedBody)
+	diags = diags.Extend(ds)
+	if diags.HasErrors() {
+		return nil, diags
 	}
 
 	// make vars in cty format and set up the initial eval context
-	ctx, err := e.makeVars(in)
+	ctx, err := e.makeVars(ctx, in)
 	if err != nil {
-		return nil, sortDiagsBySeverity(diags.Append(hclutils.Err2Diag(err)))
+		return nil, diags.Append(hclutils.Err2Diag(err))
 	}
 
 	// process top-level blocks as a group
-	ds := e.processGroup(ctx, mergedBody)
+	ds = e.processGroup(ctx, mergedBody)
 	diags = diags.Extend(ds)
 	if ds.HasErrors() {
-		return nil, sortDiagsBySeverity(diags)
+		return nil, diags
 	}
 
 	// create the response from internal state.
@@ -48,6 +63,17 @@ func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (*fnv1.Ru
 	}
 
 	return res, nil
+}
+
+// processFunctions processes all function blocks at the top-level and returns an evaluation
+// context that includes all supported functions with an `invoke` function in addition.
+func (e *Evaluator) processFunctions(content *hcl.BodyContent) (*hcl.EvalContext, hcl.Diagnostics) {
+	p := functions.NewProcessor()
+	diags := p.Process(content)
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	return p.RootContext(nil), nil
 }
 
 func (e *Evaluator) toBodies(files []File) ([]hcl.Body, hcl.Diagnostics) {

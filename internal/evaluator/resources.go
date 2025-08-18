@@ -52,9 +52,10 @@ func (e *Evaluator) processGroup(ctx *hcl.EvalContext, content *hcl.BodyContent)
 			curDiags = e.processContext(ctx, b)
 		case blockComposite:
 			curDiags = e.processComposite(ctx, b)
-		// will process in one shot after this
 		case blockLocals:
 			// already processed
+		case blockFunction:
+			// ditto
 		default:
 			curDiags = curDiags.Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,

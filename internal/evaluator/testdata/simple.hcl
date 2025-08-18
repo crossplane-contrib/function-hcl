@@ -6,12 +6,23 @@ locals {
   random_ref     = req["resource"]["primary-bucket"].status.id
 }
 
+function makeName {
+  arg base {}
+  arg suffix {
+    default = "xxx"
+  }
+  locals {
+    out = "${base}-${suffix}"
+  }
+  body = out
+}
+
 resource primary-bucket {
   body = {
     apiVersion : "aws.com/v1"
     kind : "S3Bucket"
     metadata : {
-      name : "${name}-${suffix}"
+      name : invoke("makeName", { base = name, suffix = suffix})
     }
     spec : {
       forProvider : {

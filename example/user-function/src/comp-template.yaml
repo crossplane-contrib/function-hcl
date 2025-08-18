@@ -1,0 +1,19 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: s3bucket.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: example.com/v1
+    kind: XS3Bucket
+  environment:
+  mode: Pipeline
+  pipeline:
+    - functionRef:
+        name: fn-hcl
+      step: run hcl composition
+      input:
+        apiVersion: function-hcl/v1
+        kind: HclInput
+        source: Inline
+        hcl: ${script}
