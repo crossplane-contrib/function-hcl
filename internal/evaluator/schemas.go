@@ -16,10 +16,13 @@ var (
 		{Type: blockResources, LabelNames: []string{"baseName"}},
 		{Type: blockComposite, LabelNames: []string{"object"}},
 		{Type: blockContext},
+		{Type: blockRequirement, LabelNames: []string{"name"}},
 	}
 
-	topBlocks = append(baseGroupBlocks, hcl.BlockHeaderSchema{Type: blockFunction, LabelNames: []string{"name"}})
-
+	topOnlyBlocks = []hcl.BlockHeaderSchema{
+		{Type: blockFunction, LabelNames: []string{"name"}},
+	}
+	topLevelBlocks = append(baseGroupBlocks, topOnlyBlocks...)
 	// applicable to resource and template blocks.
 	resourceBlocks = []hcl.BlockHeaderSchema{
 		{Type: blockLocals},
@@ -30,20 +33,22 @@ var (
 )
 
 var schemasByBlockType = map[string]*hcl.BodySchema{
-	blockGroup:     groupSchema(),
-	blockResource:  resourceSchema(),
-	blockResources: resourcesSchema(),
-	blockComposite: compositeSchema(),
-	blockContext:   contextSchema(),
-	blockTemplate:  templateSchema(),
-	blockReady:     readySchema(),
-	blockFunction:  functions.FunctionSchema(),
-	blockArg:       functions.ArgSchema(),
+	blockGroup:       groupSchema(),
+	blockResource:    resourceSchema(),
+	blockResources:   resourcesSchema(),
+	blockComposite:   compositeSchema(),
+	blockContext:     contextSchema(),
+	blockTemplate:    templateSchema(),
+	blockReady:       readySchema(),
+	blockFunction:    functions.FunctionSchema(),
+	blockArg:         functions.ArgSchema(),
+	blockRequirement: requirementSchema(),
+	blockSelect:      selectSchema(),
 }
 
 func topLevelSchema() *hcl.BodySchema {
 	return &hcl.BodySchema{
-		Blocks: topBlocks,
+		Blocks: topLevelBlocks,
 	}
 }
 
@@ -121,6 +126,29 @@ func compositeSchema() *hcl.BodySchema {
 		},
 		Attributes: []hcl.AttributeSchema{
 			{Name: attrBody, Required: true},
+		},
+	}
+}
+
+func requirementSchema() *hcl.BodySchema {
+	return &hcl.BodySchema{
+		Blocks: []hcl.BlockHeaderSchema{
+			{Type: blockLocals},
+			{Type: blockSelect},
+		},
+		Attributes: []hcl.AttributeSchema{
+			{Name: attrCondition},
+		},
+	}
+}
+
+func selectSchema() *hcl.BodySchema {
+	return &hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{Name: attrAPIVersion, Required: true},
+			{Name: attrKind, Required: true},
+			{Name: attrMatchName},
+			{Name: attrMatchLabels},
 		},
 	}
 }

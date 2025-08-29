@@ -1,0 +1,61 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: s3bucket.example.com
+spec:
+  compositeTypeRef:
+    apiVersion: example.com/v1
+    kind: XS3Bucket
+  environment:
+  mode: Pipeline
+  pipeline:
+    - functionRef:
+        name: fn-hcl
+      step: run hcl composition
+      input:
+        apiVersion: function-hcl/v1
+        kind: HclInput
+        source: Inline
+        hcl: |+
+          -- src/main.hcl --
+          locals {
+            comp = req.composite  // req.composite contains the composite resource
+            compName = comp.metadata.name
+            params   = comp.spec.parameters
+          }
+
+          // get an environment config out of which we will extract labels
+          requirement labels-config {
+            condition = true
+            locals {
+              ecName = "foo-bar"
+            }
+            select {
+              apiVersion  = "apiextensions.crossplane.io/v1beta1"
+              kind        = "EnvironmentConfig"
+              matchLabels = { foo = "bar" }
+            }
+          }
+
+          resource my-bucket {
+            body = {
+              apiVersion = "s3.aws.upbound.io/v1beta1"
+              kind       = "Bucket"
+              metadata = {
+                name = "${compName}-bucket"
+                // set the labels to the labels data value in the first env config object
+                labels = req.extra_resources.labels-config[0].data.labels
+              }
+              spec = {
+                forProvider = {
+                  region = params.region
+                }
+              }
+            }
+          }
+
+
+
+
+
+

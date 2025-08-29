@@ -129,12 +129,14 @@ func (e *Evaluator) evaluateCondition(ctx *hcl.EvalContext, content *hcl.BodyCon
 		if val.Type() != cty.Bool {
 			return false, diags.Append(hclutils.Err2Diag(fmt.Errorf("got type %s, expected %s", val.Type(), cty.Bool)))
 		}
-		e.discard(DiscardItem{
-			Type:        et,
-			Reason:      discardReasonUserCondition,
-			Name:        name,
-			SourceRange: condAttr.Range.String(),
-		})
+		if !val.True() {
+			e.discard(DiscardItem{
+				Type:        et,
+				Reason:      discardReasonUserCondition,
+				Name:        name,
+				SourceRange: condAttr.Range.String(),
+			})
+		}
 		return val.True(), diags
 	}
 	return true, nil
@@ -195,6 +197,12 @@ func (e *Evaluator) toResponse(diags hcl.Diagnostics) (*fnv1.RunFunctionResponse
 			return nil, fmt.Errorf("unexpected error converting context: %v", err)
 		}
 		ret.Context = s
+	}
+
+	if len(e.requirements) > 0 {
+		ret.Requirements = &fnv1.Requirements{
+			ExtraResources: e.requirements,
+		}
 	}
 
 	for name, val := range e.ready {

@@ -1,0 +1,7 @@
+apiVersion: example.com/v1
+kind: XS3Bucket
+metadata:
+  name: bucket-36f7e
+spec:
+  parameters:
+    region: eu-west-1

@@ -52,6 +52,8 @@ func (e *Evaluator) processGroup(ctx *hcl.EvalContext, content *hcl.BodyContent)
 			curDiags = e.processContext(ctx, b)
 		case blockComposite:
 			curDiags = e.processComposite(ctx, b)
+		case blockRequirement:
+			curDiags = e.processRequirement(ctx, b)
 		case blockLocals:
 			// already processed
 		case blockFunction:

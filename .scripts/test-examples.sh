@@ -38,7 +38,14 @@ do
   then
     cmd="${cmd} -o observed.yaml"
   fi
+  if [[ -f extra-resources.yaml ]]
+  then
+    cmd="${cmd} -e extra-resources.yaml"
+  fi
+
   ${cmd} | "${SCRIPT_DIR}/fix-output-yaml.sh" >/tmp/results.yaml
+  # cat /tmp/results.yaml
+
   dyff between -i --omit-header --additional-identifier type --set-exit-code src/expected.yaml  /tmp/results.yaml
   cd ..
 done

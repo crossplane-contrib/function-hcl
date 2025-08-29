@@ -236,6 +236,33 @@ resources foo {
 			errMsg: `test.hcl:3,40-49: no such attribute "name"; self.name`,
 		},
 		{
+			name: "duplicate requirements",
+			hcl: `
+	requirement valid {
+		select {
+			apiVersion = "v1"
+			kind = "ConfigMap"
+			matchName = "foo-bar"
+		}
+	}
+	requirement valid {
+		select {
+			apiVersion = "v1"
+			kind = "ConfigMap"
+			matchName = "foo-bar"
+		}
+	}
+`,
+			errMsg: `test.hcl:9,14-19: requirement defined more than once; valid`,
+		},
+		{
+			name: "bad requirement",
+			hcl: `
+	requirement foo {}
+`,
+			errMsg: `test.hcl:2,2-17: no select block in requirement; foo`,
+		},
+		{
 			name: "multiple failures",
 			hcl: `
 resources foo {

@@ -1,0 +1,10 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: foo-bar
+  labels:
+    foo: bar
+data:
+  labels:
+    foo: bar
+    bar: baz

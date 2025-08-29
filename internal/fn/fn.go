@@ -162,5 +162,6 @@ func (f *Fn) mergeResponse(res *fnv1.RunFunctionResponse, hclResponse *fnv1.RunF
 
 	res.Results = hclResponse.Results
 	res.Conditions = hclResponse.Conditions
+	res.Requirements = hclResponse.Requirements
 	return res, nil
 }

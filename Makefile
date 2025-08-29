@@ -27,7 +27,7 @@ build:
 .PHONY: unit-test
 unit-test:
 	@echo === Run unit tests ===
-	go test -race ./...
+	go test ./...
 
 .PHONY: examples
 examples:

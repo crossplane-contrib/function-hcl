@@ -36,23 +36,29 @@ const (
 
 // supported blocks and attributes.
 const (
-	blockGroup     = "group"
-	blockResource  = "resource"
-	blockResources = "resources"
-	blockComposite = "composite"
-	blockContext   = "context"
-	blockLocals    = locals.BlockLocals
-	blockTemplate  = "template"
-	blockReady     = "ready"
-	blockFunction  = functions.BlockFunction
-	blockArg       = functions.BlockArg
+	blockGroup       = "group"
+	blockResource    = "resource"
+	blockResources   = "resources"
+	blockComposite   = "composite"
+	blockContext     = "context"
+	blockLocals      = locals.BlockLocals
+	blockTemplate    = "template"
+	blockReady       = "ready"
+	blockFunction    = functions.BlockFunction
+	blockArg         = functions.BlockArg
+	blockRequirement = "requirement"
+	blockSelect      = "select"
 
-	attrBody      = "body"
-	attrCondition = "condition"
-	attrForEach   = "for_each"
-	attrName      = "name"
-	attrKey       = "key"
-	attrValue     = "value"
+	attrBody        = "body"
+	attrCondition   = "condition"
+	attrForEach     = "for_each"
+	attrName        = "name"
+	attrKey         = "key"
+	attrValue       = "value"
+	attrAPIVersion  = "apiVersion"
+	attrKind        = "kind"
+	attrMatchName   = "matchName"
+	attrMatchLabels = "matchLabels"
 
 	blockLabelStatus     = "status"
 	blockLabelConnection = "connection"
@@ -92,6 +98,7 @@ const (
 	discardTypeConnection   DiscardType = "composite-connection"
 	discardTypeReady        DiscardType = "resource-ready"
 	discardTypeContext      DiscardType = "context"
+	discardTypeRequirement  DiscardType = "requirement"
 )
 
 // DiscardReason describes the reason for the elision.
@@ -136,19 +143,20 @@ func (di DiscardItem) MessageString() string {
 // Evaluator evaluates the HCL DSL created for the purposes of producing crossplane resources.
 // Evaluators have mutable state and must not be re-used, nor are they safe for concurrent use.
 type Evaluator struct {
-	log                      logging.Logger              // the logger to use
-	debug                    bool                        // whether we are in debug mode
-	files                    map[string]*hcl.File        // map of HCL files keyed by source filename
-	existingResourceMap      DynamicObject               // tracks resource names present in observed resources
-	existingConnectionMap    DynamicObject               // tracks observed resource connection details.
-	collectionResourcesMap   DynamicObject               // tracks resource names present in observed resource collections
-	collectionConnectionsMap DynamicObject               // tracks observed collection resource connection details.
-	desiredResources         map[string]*structpb.Struct // desired resource bodies
-	compositeStatuses        []Object                    // status attributes of the composite
-	compositeConnections     []map[string][]byte         // composite connection details
-	contexts                 []Object                    // desired context values
-	ready                    map[string]int32            // readiness indicator for resource
-	discards                 []DiscardItem               // list of things discarded from output
+	log                      logging.Logger                    // the logger to use
+	debug                    bool                              // whether we are in debug mode
+	files                    map[string]*hcl.File              // map of HCL files keyed by source filename
+	existingResourceMap      DynamicObject                     // tracks resource names present in observed resources
+	existingConnectionMap    DynamicObject                     // tracks observed resource connection details.
+	collectionResourcesMap   DynamicObject                     // tracks resource names present in observed resource collections
+	collectionConnectionsMap DynamicObject                     // tracks observed collection resource connection details.
+	desiredResources         map[string]*structpb.Struct       // desired resource bodies
+	requirements             map[string]*fnv1.ResourceSelector // requirements
+	compositeStatuses        []Object                          // status attributes of the composite
+	compositeConnections     []map[string][]byte               // composite connection details
+	contexts                 []Object                          // desired context values
+	ready                    map[string]int32                  // readiness indicator for resource
+	discards                 []DiscardItem                     // list of things discarded from output
 }
 
 // New creates an evaluator.
@@ -165,6 +173,7 @@ func New(opts Options) (*Evaluator, error) {
 		debug:            opts.Debug,
 		files:            map[string]*hcl.File{},
 		desiredResources: map[string]*structpb.Struct{},
+		requirements:     map[string]*fnv1.ResourceSelector{},
 		ready:            map[string]int32{},
 	}, nil
 }

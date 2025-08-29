@@ -89,6 +89,8 @@ All Terraform functions as of 1.5.7 are supported, _except_
 * impure functions like `uuid`, `uuid5` etc. that introduce randomness.
   The intent is to have a hermetic system where a given set of inputs always lead to the same outputs.
 
+It is also possible to write your own functions. See the section on user-defined functions.
+
 ## Create a resource
 
 Use the `resource` block to create a resource. This
@@ -208,7 +210,7 @@ Special variables that are available are:
 * `each.value` - the current value of the iterator which is the value in the array index, value for the map key or the
    value from a set.
 
-### Groups of resources
+## Groups of resources
 
 The `group` block allows you to group related resources together. It allows you to create a "scope" where the local
 variables you define are only available to the resources in the group. 
@@ -415,11 +417,121 @@ context  {
 
 ## Set requirements in the response for extra resources
 
-This is not yet implemented. PRs welcome :)
+You can ask for extra resources that crossplane will supply when requested. 
+
+You can ask for requirements by object name:
+
+```hcl
+requirement my-config {
+  select {
+    apiVersion = "apiextensions.crossplane.io/v1beta1"
+    kind       = "EnvironmentConfig"
+    matchName  = "foo-bar"
+  }
+}
+```
+
+or by object labels:
+
+```hcl
+requirement my-config {
+  select {
+    apiVersion   = "apiextensions.crossplane.io/v1beta1"
+    kind         = "EnvironmentConfig"
+    matchLabels  = { foo = "bar" }
+  }
+}
+```
+
+The name given to the requirement is the key in `req.extra_resources` that will be set to an array of matching objects.
+So, for example you can access resources produced from the requirement above in an expression as follows:
+
+```hcl
+  locals {
+    myLabelValue = req.extra_resources.my-config[0].metadata.labels["my-label"]
+  }
+```
+
+Note that you need to specify an array index to access the first matching object.
+
+In addition, `requirement` blocks can have a `condition` attribute and `locals` blocks.
+
+```hcl
+requirement labels-config {
+  condition = req.composite.metadata.labels["special"] == "true"
+  locals {
+    ecName = "foo-bar"
+  }
+  select {
+    apiVersion = "apiextensions.crossplane.io/v1beta1"
+    kind       = "EnvironmentConfig"
+    matchName  = ecName
+  }
+}
+```
+
+* The requirement is skipped if the condition does not evaluate to true. The usual rules for conditions apply.
+* Local variables can be used as temporary variables for complex calculations.
+
+## User defined functions
+
+### Defining functions
+
+Functions can be defined in the code using a `function` block. They **must** be defined at the top-level. For example,
+they cannot be defined under a `group`.
+
+```hcl
+function addNumbers {
+  arg a {}
+  arg b { default = 1 }
+
+  locals {
+    output = a + b
+  }
+  
+  body = output
+}
+```
+
+* The above block defines a user function named `addNumbers` that takes 2 arguments `a` and `b`. `b` has a default value
+of 1 if it is not supplied. `a` must be supplied by the caller.
+* Arguments are accessed in the function implementation as though they are local variables. Functions do not have access
+  to any other state. For example, using `req.composite` etc. will fail.
+* The `body` attribute is the return value of the function
+* A function may use local variables for temporary calculations in `locals` blocks.
+* A function can call other standard functions or invoke other user functions in its implementation.
+
+### Invoking user functions
+
+A standard function `invoke` may be used to invoke user functions.
+
+```hcl
+    locals {
+      c = invoke("addNumbers", { a: 2, b: 3})
+    }
+```
+* The first parameter to `invoke` is a user function name that **must** be a static string. Using variables is not allowed.
+* The second parameter is a object that provides values to the function's arguments. 
+  Arguments with defaults may be omitted.
+
+### Recursion
+
+It is possible (but not encouraged) to write self or mutually-recursive functions. 
+For example, this is a valid `factorial` function.
+
+```hcl
+function factorial {
+  arg n {}
+  body = n < 1 ? 1 : n * invoke("factorial", { n: n - 1 })
+}
+```
+
+Infinite recursion is prevented by a call stack that can only grow to 100. 
+The expression `invoke("factorial",{ n: 101 })` will fail.
 
 ## Auto discarding incomplete values
 
-function-hcl will automatically drop resource, status, connection, and context blocks if there are expressions that
+function-hcl will automatically drop resource, status, connection, requirement, and context blocks if there are expressions that
 refer to unknown values in them. 
 
 For example, in this status block:
@@ -486,8 +598,9 @@ The rules for discarding things are:
 
 ## Events and status values
 
-The function reports a custom status value called `FullyResolved` which is true only when there are no incomplete
-values encountered in processing. 
+The function reports a custom condition value called `FullyResolved` which is true only when there are no incomplete
+values encountered in processing. In addition, it also exposes a condition value called `HclDiagnostics` that can contain
+additional debugging information, especially useful in the case of incomplete values.
 
 Examples:
 
@@ -498,7 +611,15 @@ conditions:
     reason: AllItemsProcessed
     status: "True"
     type: FullyResolved
+
+  - type: HclDiagnostics
+    lastTransitionTime: "2024-01-01T00:00:00Z"
+    message: "hcl.Diagnostics contains no warnings"
+    reason: Eval
+    status: "True"
 ```
+
+Additional warning events show the variables and the source code positions that could not be evaluated.
 
 ## Error conditions
 
@@ -512,3 +633,8 @@ The following are treated as errors:
 * A condition value is incomplete
 * A resource that is available in the observed state has become incomplete
 * A non-object composite status value or a connection value is produced from two places, and they have different values
+* A requirement block defines both `matchName` and `matchLabels` or does not specify either.
+* There is a data type mismatch in the attributes of a requirement block.
+* A function or an arg has a name that is not an identifier
+* The invocation of a user function is for a non-existent function.
+* A user function is invoked incorrectly, with an missing or bad keys in the parameters object.

@@ -20,7 +20,8 @@ do
   fi
   run=1
   echo $dir
-  (cd $dir && cat src/comp-template.yaml | script="$(fn-hcl-tools package src/*hcl | jq -sR)" envsubst | yq -P>composition.yaml)
+  (cd $dir && fn-hcl-tools package src/*hcl >/tmp/script.txtar)
+  (cd $dir && cat src/comp-template.yaml | script="$(cat /tmp/script.txtar | jq -sR)" envsubst | yq -P>composition.yaml)
 done
 
 if [[ "${run}" == "0" ]]
