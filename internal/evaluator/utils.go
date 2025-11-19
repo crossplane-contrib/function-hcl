@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -77,26 +76,28 @@ func valueToInterface(val cty.Value) (any, error) {
 	return result, nil
 }
 
-// valueToStruct returns the supplied value as a protobuf struct.
-func valueToStruct(val cty.Value) (*structpb.Struct, error) {
-	jsonBytes, err := ctyjson.Marshal(val, val.Type())
-	if err != nil {
-		return nil, err
+func removeNulls(val Object) {
+	for k, v := range val {
+		if v == nil {
+			delete(val, k)
+			continue
+		}
+		switch v := v.(type) {
+		case Object:
+			removeNulls(v)
+		case []any:
+			for _, item := range v {
+				if obj, ok := item.(Object); ok {
+					removeNulls(obj)
+				}
+			}
+		}
 	}
-	var result structpb.Struct
-	if err := protojson.Unmarshal(jsonBytes, &result); err != nil {
-		return nil, err
-	}
-	return &result, nil
 }
 
 // valueToStructWithAnnotations returns the supplied dynamic value as a protobuf struct after
 // injecting the supplied annotations into it.
 func valueToStructWithAnnotations(val cty.Value, a map[string]string) (*structpb.Struct, error) {
-	if len(a) == 0 {
-		return valueToStruct(val)
-	}
-
 	jsonBytes, err := ctyjson.Marshal(val, val.Type())
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal cty to json")
@@ -107,28 +108,33 @@ func valueToStructWithAnnotations(val cty.Value, a map[string]string) (*structpb
 		return nil, errors.Wrap(err, "unmarshal cty to json")
 	}
 
-	meta, ok := result["metadata"]
-	if !ok {
-		meta = map[string]any{}
-		result["metadata"] = meta
-	}
-	metaObj, ok := meta.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("expected metadata to be a map[string]any, got %T", meta)
-	}
+	// remove all null keys from the result
+	removeNulls(result)
 
-	annotations, ok := metaObj["annotations"]
-	if !ok {
-		annotations = map[string]any{}
-		metaObj["annotations"] = annotations
-	}
-	annotationsObj, ok := annotations.(map[string]any)
-	if !ok {
-		return nil, fmt.Errorf("expected annotations to be a map[string]any, got %T", meta)
-	}
+	if len(a) > 0 {
+		meta, ok := result["metadata"]
+		if !ok {
+			meta = map[string]any{}
+			result["metadata"] = meta
+		}
+		metaObj, ok := meta.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("expected metadata to be a map[string]any, got %T", meta)
+		}
 
-	for k, v := range a {
-		annotationsObj[k] = v
+		annotations, ok := metaObj["annotations"]
+		if !ok {
+			annotations = map[string]any{}
+			metaObj["annotations"] = annotations
+		}
+		annotationsObj, ok := annotations.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("expected annotations to be a map[string]any, got %T", meta)
+		}
+
+		for k, v := range a {
+			annotationsObj[k] = v
+		}
 	}
 	ret, err := structpb.NewStruct(result)
 	if err != nil {
