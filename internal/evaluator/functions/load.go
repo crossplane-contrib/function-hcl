@@ -15,6 +15,7 @@ const (
 	attrDescription = "description"
 	attrDefault     = "default"
 	attrBody        = "body"
+	attrResult      = "result"
 	blockLocals     = locals.BlockLocals
 )
 
@@ -59,6 +60,19 @@ func (e *Processor) processFunction(block *hcl.Block) (*UserFunction, hcl.Diagno
 		return nil, emptyDiags.Extend(hclutils.ToErrorDiag(fmt.Sprintf("function %q : name must be an identifier", fnName), "", block.LabelRanges[0]))
 	}
 
+	aResult := content.Attributes[attrResult]
+	aBody := content.Attributes[attrBody]
+	if aResult == nil && aBody == nil {
+		return nil, emptyDiags.Extend(hclutils.ToErrorDiag(fmt.Sprintf("function %q : body or result attribute needed", fnName), "", block.DefRange))
+	}
+	if aResult != nil && aBody != nil {
+		return nil, emptyDiags.Extend(hclutils.ToErrorDiag(fmt.Sprintf("function %q : body and result attributes cannot be specified together", fnName), "", block.DefRange))
+	}
+	fnBody := aResult
+	if aResult == nil {
+		fnBody = aBody
+	}
+
 	desc := ""
 	descAttr := content.Attributes[attrDescription]
 	if descAttr != nil {
@@ -95,7 +109,7 @@ func (e *Processor) processFunction(block *hcl.Block) (*UserFunction, hcl.Diagno
 		return nil, diags
 	}
 	curDiags = curDiags.Extend(diags)
-	bodyAttr := content.Attributes[attrBody]
+	bodyAttr := fnBody
 	return &UserFunction{
 		Name:         fnName,
 		Description:  desc,
@@ -157,7 +171,8 @@ func FunctionSchema() *hcl.BodySchema {
 		},
 		Attributes: []hcl.AttributeSchema{
 			{Name: attrDescription},
-			{Name: attrBody, Required: true},
+			{Name: attrResult, Required: false},
+			{Name: attrBody, Required: false},
 		},
 	}
 }

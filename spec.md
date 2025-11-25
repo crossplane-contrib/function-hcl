@@ -96,7 +96,7 @@ It is also possible to write your own functions. See the section on user-defined
 Use the `resource` block to create a resource. This
 
 * defines a desired resource with a specific crossplane name.
-* the `body` attribute is the Kubernetes object you wish to create.
+* the `body` block is the Kubernetes object you wish to create.
 * you can add locals that are scoped to just the resource. 
 * you can include other blocks related to composite status, connection details etc.
   These are described in a later section.
@@ -121,25 +121,22 @@ resource my-s3-bucket {
     resourceName = "${req.composite.metadata.name}-bucket"
     params       = req.composite.spec.parameters
     tagValues = {
-      foo : "bar"
+      foo = "bar"
     }
   }
 
   // body contains the resource definition as a schemaless object.
-  // it is a single object so you can either use `:` or `=` to assign values as allowed by HCL.
-  // The example below deliberately mixes things up to show both are possible.
-  // However `body` itself can only be assigned with a `=` sign since it is a block attribute.
-  body = {
+  body {
     apiVersion = "s3.aws.upbound.io/v1beta1"
     kind       = "Bucket"
-    metadata : {
-      name : resourceName
+    metadata = {
+      name = resourceName
     }
-    spec : {
-      forProvider : {
-        forceDestroy : true
-        region = params.region
-        tags   = tagValues
+    spec = {
+      forProvider = {
+        forceDestroy = true
+        region       = params.region
+        tags         = tagValues
       }
     }
   }
@@ -183,7 +180,7 @@ resources additional_buckets  {
       // Note that it is your responsibility to
       // set metadata.name to a unique, stable name. The `self.name` special variable contains the
       // output of the name expression and may be used for this purpose.
-      body = {
+      body {
         apiVersion = "s3.aws.upbound.io/v1beta1"
         kind       = "Bucket"
         metadata = {
@@ -287,7 +284,7 @@ Status blocks can be written at any level. At the top level, you could do:
 
 ```hcl
 composite status {
-  body = {
+  body {
     foobarId = req.resource.foobar.status.atProvider.id
   }
 }
@@ -303,7 +300,7 @@ resource foobar {
   // ...
 
   composite status {
-    body = {
+    body {
       foobarId = self.resource.status.atProvider.id
     }
   }
@@ -317,7 +314,7 @@ So it's ok for two resources to  produce status as follows:
 
 ```hcl
   composite status {
-    body = {
+    body {
       foo = { bar : { baz : { x : 10 } } }
   
       // not ok
@@ -489,7 +486,7 @@ function addNumbers {
     output = a + b
   }
   
-  body = output
+  result = output
 }
 ```
 
@@ -497,7 +494,7 @@ function addNumbers {
 of 1 if it is not supplied. `a` must be supplied by the caller.
 * Arguments are accessed in the function implementation as though they are local variables. Functions do not have access
   to any other state. For example, using `req.composite` etc. will fail.
-* The `body` attribute is the return value of the function
+* The `result` attribute is the return value of the function
 * A function may use local variables for temporary calculations in `locals` blocks.
 * A function can call other standard functions or invoke other user functions in its implementation.
 
@@ -522,7 +519,7 @@ For example, this is a valid `factorial` function.
 ```hcl
 function factorial {
   arg n {}
-  body = n < 1 ? 1 : n * invoke("factorial", { n: n - 1 })
+  result = n < 1 ? 1 : n * invoke("factorial", { n: n - 1 })
 }
 ```
 
@@ -560,7 +557,7 @@ resource vpc {
   // ...
 
   composite status {
-    body = {
+    body {
       vpcId = self.resource.status.ayProvider.vpcId
     }
   }
@@ -568,7 +565,7 @@ resource vpc {
 
 resource subnet {
   //...
-  body = {
+  body {
     // ...
     spec: {
       forProvider: {

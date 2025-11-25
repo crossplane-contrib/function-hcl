@@ -1,5 +1,5 @@
 locals {
-  comp = req.composite  // req.composite contains the composite resource
+  comp     = req.composite // req.composite contains the composite resource
   compName = comp.metadata.name
   params   = comp.spec.parameters
 }
@@ -18,7 +18,7 @@ requirement labels-config {
 }
 
 resource my-bucket {
-  body = {
+  body {
     apiVersion = "s3.aws.upbound.io/v1beta1"
     kind       = "Bucket"
     metadata = {

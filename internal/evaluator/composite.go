@@ -22,7 +22,12 @@ func (e *Evaluator) processComposite(ctx *hcl.EvalContext, block *hcl.Block) hcl
 		return ds
 	}
 
-	values := content.Attributes[attrBody].Expr
+	values, ds := e.bodyExpression(content, block.DefRange)
+	diags = diags.Extend(ds)
+	if ds.HasErrors() {
+		return ds
+	}
+
 	what := block.Labels[0]
 	switch what {
 	case blockLabelStatus:

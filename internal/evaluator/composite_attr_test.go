@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEvaluator_ProcessComposite_Status(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_Status(t *testing.T) {
 	hclContent := `
 resource "database" {
-  body {
+  body = {
     apiVersion = "postgresql.cnpg.io/v1"
     kind       = "Cluster"
     metadata = {
@@ -48,10 +48,10 @@ resource "database" {
 	assert.EqualValues(t, 3, status["replica_count"])
 }
 
-func TestEvaluator_ProcessComposite_StatusWithLocals(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_StatusWithLocals(t *testing.T) {
 	hclContent := `
 resource "web-app" {
-  body {
+  body = {
     apiVersion = "apps/v1"
     kind       = "Deployment"
     metadata = {
@@ -90,10 +90,10 @@ resource "web-app" {
 	assert.Equal(t, "https://webapp.example.com", status["endpoint_url"])
 }
 
-func TestEvaluator_ProcessComposite_Connection(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_Connection(t *testing.T) {
 	hclContent := `
 resource "database" {
-  body {
+  body = {
     apiVersion = "postgresql.cnpg.io/v1"
     kind       = "Cluster"
     metadata = {
@@ -131,10 +131,10 @@ resource "database" {
 	assert.Equal(t, []byte("host"), connections["host"])
 }
 
-func TestEvaluator_ProcessComposite_ConnectionInvalidBase64(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_ConnectionInvalidBase64(t *testing.T) {
 	hclContent := `
 resource "database" {
-  body {
+  body = {
     apiVersion = "postgresql.cnpg.io/v1"
     kind       = "Cluster"
     metadata = {
@@ -170,10 +170,10 @@ resource "database" {
 	assert.Equal(t, discardTypeConnection, evaluator.discards[0].Type)
 }
 
-func TestEvaluator_ProcessComposite_MultipleStatuses(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_MultipleStatuses(t *testing.T) {
 	hclContent := `
 resource "frontend" {
-  body {
+  body = {
     apiVersion = "apps/v1"
     kind       = "Deployment"
     metadata = {
@@ -182,7 +182,7 @@ resource "frontend" {
   }
   
   composite "status" {
-	body {
+	body = {
       frontend_ready = true
       frontend_replicas = 2
 	}
@@ -190,7 +190,7 @@ resource "frontend" {
 }
 
 resource "backend" {
-  body {
+  body = {
     apiVersion = "apps/v1"
     kind       = "Deployment"
     metadata = {
@@ -199,7 +199,7 @@ resource "backend" {
   }
   
   composite "status" {
-	body {
+	body = {
       backend_ready = true
 	  backend_replicas = 3
 	  shared_config = "common-value"
@@ -234,10 +234,10 @@ resource "backend" {
 	assert.Equal(t, "common-value", backendStatus["shared_config"])
 }
 
-func TestEvaluator_ProcessComposite_StatusIncomplete(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_StatusIncomplete(t *testing.T) {
 	hclContent := `
 resource "incomplete-status" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "ConfigMap"
     metadata = {
@@ -246,7 +246,7 @@ resource "incomplete-status" {
   }
   
   composite "status" {
-	body {
+	body = {
       ready = true
       unknown_field = req.composite.spec.nonexistent_field
 	}
@@ -277,7 +277,7 @@ resource "incomplete-status" {
 	assert.True(t, foundDiscard, "expected incomplete status discard")
 }
 
-func TestEvaluator_ProcessResources_WithComposite(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_WithComposite(t *testing.T) {
 	hclContent := `
 resources "workers" {
   for_each = ["worker-1", "worker-2"]
@@ -293,13 +293,13 @@ resources "workers" {
   }
   
   composite status {
-    body {
+    body = {
       workers_created = 2
     }
   }
 
   composite status {
-    body {
+    body = {
       worker_names = [for r in self.resources : r.metadata.name]
 	}
   }
@@ -326,7 +326,7 @@ resources "workers" {
 	assert.Contains(t, status, "workers_created")
 }
 
-func TestEvaluator_ProcessComposite_InvalidLabel(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_InvalidLabel(t *testing.T) {
 	hclContent := `
 resource "test-resource" {
   body = {
@@ -338,7 +338,7 @@ resource "test-resource" {
   }
   
   composite invalid-label {
-    body {
+    body = {
       some_field = "value"
     }
   }
@@ -354,7 +354,7 @@ resource "test-resource" {
 	assert.Contains(t, err.Error(), "invalid composite label")
 }
 
-func TestEvaluator_ProcessComposite_ConnectionNonStringValue(t *testing.T) {
+func TestEvaluatorAttr_ProcessComposite_ConnectionNonStringValue(t *testing.T) {
 	hclContent := `
 resource "database" {
   body = {
@@ -366,7 +366,7 @@ resource "database" {
   }
   
   composite "connection" {
-    body {
+    body = {
       port = 5432  # non-string value should cause error
     }
   }
@@ -382,7 +382,7 @@ resource "database" {
 	assert.Contains(t, err.Error(), `connection key "port" was not a string, got float64`)
 }
 
-func TestEvaluator_ValidBase64Encoding(t *testing.T) {
+func TestEvaluatorAttr_ValidBase64Encoding(t *testing.T) {
 	// helper test to verify our base64 test data is correct
 	testCases := []struct {
 		encoded string
@@ -400,25 +400,10 @@ func TestEvaluator_ValidBase64Encoding(t *testing.T) {
 	}
 }
 
-func TestEvaluator_ProcessComposite_NewNegativeCase1(t *testing.T) {
+func TestEvaluator_ProcessComposite_NewNegativeCaseForAttr(t *testing.T) {
 	hclContent := `
   composite "connection" {
-  }
-`
-
-	evaluator := createTestEvaluator(t)
-	ctx := createTestEvalContext()
-	content := parseHCL(t, evaluator, hclContent, "test.hcl")
-
-	err := evaluator.processGroup(ctx, content)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), `test.hcl:2,3-25: no body found; one of a body attribute or block is required`)
-}
-
-func TestEvaluator_ProcessComposite_NewNegativeCase2(t *testing.T) {
-	hclContent := `
-  composite "connection" {
-    body {
+    body = {
       port = 5432  # non-string value should cause error
     }
     body {
@@ -433,5 +418,5 @@ func TestEvaluator_ProcessComposite_NewNegativeCase2(t *testing.T) {
 
 	err := evaluator.processGroup(ctx, content)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `test.hcl:2,3-25: body block defined more than once`)
+	assert.Contains(t, err.Error(), `test.hcl:2,3-25: invalid resource body; body attribute and block cannot be specified at the same time`)
 }

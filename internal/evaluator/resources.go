@@ -82,7 +82,7 @@ func (e *Evaluator) processResource(ctx *hcl.EvalContext, block *hcl.Block) hcl.
 	}
 
 	// add the resource to our stash
-	ds := e.addResource(ctx, resourceName, content, nil)
+	ds := e.addResource(ctx, resourceName, content, block.DefRange, nil)
 	return diags.Extend(ds)
 }
 
@@ -218,7 +218,7 @@ func (e *Evaluator) processResources(ctx *hcl.EvalContext, block *hcl.Block) hcl
 			annotationBaseName: baseName,
 			annotationIndex:    fmt.Sprintf("s%06d", i),
 		}
-		ds = e.addResource(iterContext, name, templateContent, annotations)
+		ds = e.addResource(iterContext, name, templateContent, templateBlock.DefRange, annotations)
 		diags = diags.Extend(ds)
 		if ds.HasErrors() {
 			return diags
@@ -242,7 +242,50 @@ func (e *Evaluator) processResources(ctx *hcl.EvalContext, block *hcl.Block) hcl
 	return diags
 }
 
-func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, content *hcl.BodyContent, annotations map[string]string) hcl.Diagnostics {
+func (e *Evaluator) bodyExpression(content *hcl.BodyContent, r hcl.Range) (hcl.Expression, hcl.Diagnostics) {
+	attr := content.Attributes[attrBody]
+	var bodyBlock *hcl.Block
+	for _, block := range content.Blocks {
+		if block.Type == blockBody {
+			if bodyBlock != nil {
+				return nil, hclutils.ToErrorDiag("body block defined more than once", "", r)
+			}
+			bodyBlock = block
+		}
+	}
+	if attr == nil && bodyBlock == nil {
+		return nil, hclutils.ToErrorDiag("no body found", "one of a body attribute or block is required", r)
+	}
+	if attr != nil && bodyBlock != nil {
+		return nil, hclutils.ToErrorDiag("invalid resource body", "body attribute and block cannot be specified at the same time", r)
+	}
+	if attr != nil {
+		return attr.Expr, nil
+	}
+	attrs, diags := bodyBlock.Body.JustAttributes()
+	if diags.HasErrors() {
+		return nil, diags
+	}
+	var items []hclsyntax.ObjectConsItem
+	for name, a := range attrs {
+		//nolint:forcetypeassert // can never fail
+		v := a.Expr.(hclsyntax.Expression)
+		items = append(items, hclsyntax.ObjectConsItem{
+			KeyExpr: &hclsyntax.LiteralValueExpr{
+				Val:      cty.StringVal(name),
+				SrcRange: a.NameRange,
+			},
+			ValueExpr: v,
+		})
+	}
+	return &hclsyntax.ObjectConsExpr{
+		Items:     items,
+		SrcRange:  bodyBlock.DefRange,
+		OpenRange: bodyBlock.TypeRange,
+	}, nil
+}
+
+func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, content *hcl.BodyContent, contentRange hcl.Range, annotations map[string]string) hcl.Diagnostics {
 	// dup check
 	if e.desiredResources[resourceName] != nil {
 		return hcl.Diagnostics{&hcl.Diagnostic{
@@ -262,12 +305,10 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 		return diags
 	}
 
-	body, ok := content.Attributes[attrBody]
-	if !ok {
-		return hcl.Diagnostics{&hcl.Diagnostic{
-			Severity: hcl.DiagError,
-			Summary:  fmt.Sprintf("internal error: no body in content block for %q", resourceName),
-		}}
+	bodyExpr, ds := e.bodyExpression(content, contentRange)
+	diags = diags.Extend(ds)
+	if ds.HasErrors() {
+		return diags
 	}
 
 	cond, ds := e.evaluateCondition(ctx, content, discardTypeResource, resourceName)
@@ -283,7 +324,7 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 	}
 
 	// process the body
-	out, ds := body.Expr.Value(ctx)
+	out, ds := bodyExpr.Value(ctx)
 
 	// if we have errors in processing or couldn't fully eval the body, make it a hard error if there is already an observed
 	// resource with this name. This implies that the user has made a bad change to one of the
@@ -293,7 +334,7 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 		context := e.messagesFromDiags(ds)
 
 		var incompleteVars []string
-		for _, t := range body.Expr.Variables() {
+		for _, t := range bodyExpr.Variables() {
 			v, tdiag := t.TraverseAbs(ctx)
 			ds = append(ds, tdiag...)
 
@@ -322,7 +363,7 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 		if _, have := e.existingResourceMap[resourceName]; have {
 			return diags.Extend(ds).Append(&hcl.Diagnostic{
 				Severity: hcl.DiagError,
-				Subject:  ptr(body.Expr.Range()),
+				Subject:  ptr(bodyExpr.Range()),
 				Summary:  fmt.Sprintf("existing resource %s could not be evaluated, abort (unknown values: %s)", resourceName, unknown),
 			})
 		}
@@ -331,7 +372,7 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 			Type:        discardTypeResource,
 			Reason:      discardReasonIncomplete,
 			Name:        resourceName,
-			SourceRange: body.Expr.Range().String(),
+			SourceRange: bodyExpr.Range().String(),
 			Context:     append(context, fmt.Sprintf("unknown values: %s", unknown)),
 		})
 		// map unknown resource value errors to warnings as we'll handle them later
@@ -345,7 +386,7 @@ func (e *Evaluator) addResource(ctx *hcl.EvalContext, resourceName string, conte
 		return diags.Append(&hcl.Diagnostic{
 			Severity: hcl.DiagError,
 			Summary:  fmt.Sprintf("unable to convert resource body to struct: %s", resourceName),
-			Subject:  ptr(body.Expr.Range()),
+			Subject:  ptr(bodyExpr.Range()),
 		})
 	}
 	e.desiredResources[resourceName] = bodyStruct

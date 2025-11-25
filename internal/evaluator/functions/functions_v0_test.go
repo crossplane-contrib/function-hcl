@@ -1,49 +1,15 @@
 package functions_test
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/crossplane-contrib/function-hcl/internal/evaluator/functions"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclparse"
-	"github.com/hashicorp/hcl/v2/hclsyntax"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/zclconf/go-cty/cty"
 )
 
-// parseFunctionsHCL parses HCL content containing function declarations and returns body content.
-func parseFunctionsHCL(t *testing.T, content string) *hcl.BodyContent {
-	t.Helper()
-	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCL([]byte(content), "test.hcl")
-	require.False(t, diags.HasErrors(), "Failed to parse HCL: %s", diags)
-
-	schema := &hcl.BodySchema{
-		Blocks: []hcl.BlockHeaderSchema{
-			{Type: "function", LabelNames: []string{"name"}},
-			{Type: "locals"},
-		},
-	}
-
-	contentBody, diags := file.Body.Content(schema)
-	require.False(t, diags.HasErrors(), "Failed to get content: %s", diags)
-	return contentBody
-}
-
-func parseExpression(t *testing.T, str string) hclsyntax.Expression {
-	if strings.HasPrefix(str, "${") {
-		expr, err := hclsyntax.ParseTemplate([]byte(str), "template.hcl", hcl.Pos{Line: 1, Column: 1})
-		require.False(t, err.HasErrors())
-		return expr
-	}
-	expr, err := hclsyntax.ParseExpression([]byte(str), "expr.hcl", hcl.Pos{Line: 1, Column: 1})
-	require.False(t, err.HasErrors())
-	return expr
-}
-
-func TestBasicFunctions(t *testing.T) {
+func TestBasicFunctionsV0(t *testing.T) {
 	defs := parseFunctionsHCL(t, `
 locals {}
 function mX {
@@ -55,7 +21,7 @@ function mX {
 		default = 2
 		description = "multiplier"
 	}
-	result = m * n
+	body = m * n
 }
 
 function plusK {
@@ -66,7 +32,7 @@ function plusK {
 		default = 1
 		description = "addend"
 	}
-	result = n + k
+	body = n + k
 }
 
 function twoXPlus1 {
@@ -77,7 +43,7 @@ function twoXPlus1 {
 		mult = invoke("mX", { n: n})
 		add = invoke("plusK", { n: mult})
 	}
-	result = add
+	body = add
 }
 `)
 	p := functions.NewProcessor()
@@ -93,11 +59,11 @@ function twoXPlus1 {
 	assert.EqualValues(t, 201, out)
 }
 
-func TestRecursiveFunction(t *testing.T) {
+func TestRecursiveFunctionV0(t *testing.T) {
 	defs := parseFunctionsHCL(t, `
 function factorial {
 	arg n {}
-	result = n < 1 ? 1 : n * invoke("factorial", { n: n - 1 })
+	body = n < 1 ? 1 : n * invoke("factorial", { n: n - 1 })
 }
 `)
 
@@ -119,7 +85,7 @@ function factorial {
 	assert.Contains(t, diags.Error(), "user function calls: max depth 100 exceeded")
 }
 
-func TestFunctionCallsNegative(t *testing.T) {
+func TestFunctionCallsNegativeV0(t *testing.T) {
 	defs := parseFunctionsHCL(t, `
 function mX {
 	arg n {
@@ -129,7 +95,7 @@ function mX {
 		default = 2
 		description = "multiplier"
 	}
-	result = m * n
+	body = m * n
 }
 `)
 
@@ -180,7 +146,7 @@ function mX {
 	}
 }
 
-func TestProcessFunctionsNegative(t *testing.T) {
+func TestProcessFunctionsNegativeV0(t *testing.T) {
 	tests := []struct {
 		name string
 		hcl  string
@@ -192,7 +158,7 @@ func TestProcessFunctionsNegative(t *testing.T) {
 			hcl: `
 function x { 
 	arg2 y {} 
-	result = y
+	body = y
 }
 			`,
 		},
@@ -202,7 +168,7 @@ function x {
 			hcl: `
 function "x plus y" { 
 	arg y {} 
-	result = y
+	body = y
 }
 			`,
 		},
@@ -212,7 +178,7 @@ function "x plus y" {
 			hcl: `
 function x { 
 	arg "plus y" {} 
-	result = "x"
+	body = "x"
 }
 			`,
 		},
@@ -222,7 +188,7 @@ function x {
 			hcl: `
 function x { 
 	arg y { default2 = 10 } 
-	result = y
+	body = y
 }
 			`,
 		},
@@ -232,11 +198,11 @@ function x {
 			hcl: `
 function x { 
 	arg y {} 
-	result = y
+	body = y
 }
 function x { 
 	arg z {} 
-	result = z
+	body = z
 }
 			`,
 		},
@@ -247,7 +213,7 @@ function x {
 function x { 
 	arg y {} 
 	arg y {}
-	result = y
+	body = y
 }
 			`,
 		},
@@ -258,7 +224,7 @@ function x {
 function x { 
 	description = 100
 	arg y {}
-	result = y
+	body = y
 }
 			`,
 		},
@@ -269,7 +235,7 @@ function x {
 function x { 
 	description = "f(x)"
 	arg y { description = 100 }
-	result = y
+	body = y
 }
 			`,
 		},
@@ -283,7 +249,7 @@ locals {
 function x { 
 	description = "f(x)"
 	arg y { default = z }
-	result = y
+	body = y
 }
 			`,
 		},
@@ -298,7 +264,7 @@ function x {
 		a = b
 		b = a
 	}
-	result = y
+	body = y
 }
 			`,
 		},
@@ -308,52 +274,52 @@ function x {
 			hcl: `
 function x { 
 	arg y {}
-	result = z
+	body = z
 }
 
 function y { 
 	arg p {}
-	result = z
+	body = z
 }
 			`,
 		},
 		{
 			name: "bad function call 1",
-			msg:  `test.hcl:4,18-19: user function invocation is not via a static string;`,
+			msg:  `test.hcl:4,16-17: user function invocation is not via a static string;`,
 			hcl: `
 function x { 
 	arg y {}
-	result = invoke(y, {})
+	body = invoke(y, {})
 }
 			`,
 		},
 		{
 			name: "bad function call 2",
-			msg:  `test.hcl:4,11-19: user function invocation has incorrect number of arguments; want 2, got 0`,
+			msg:  `test.hcl:4,9-17: user function invocation has incorrect number of arguments; want 2, got 0`,
 			hcl: `
 function x { 
 	arg y {}
-	result = invoke()
+	body = invoke()
 }
 			`,
 		},
 		{
 			name: "bad function call 3",
-			msg:  `test.hcl:4,17-46: user function invocation has incorrect number of arguments; want 2, got 3`,
+			msg:  `test.hcl:4,15-44: user function invocation has incorrect number of arguments; want 2, got 3`,
 			hcl: `
 function x { 
 	arg y {}
-	result = upper(invoke("y", {a: 10}, {b: 20}))
+	body = upper(invoke("y", {a: 10}, {b: 20}))
 }
 			`,
 		},
 		{
 			name: "bad function call 4",
-			msg:  `test.hcl:4,18-21: invoke called on unknown function: "y"`,
+			msg:  `test.hcl:4,16-19: invoke called on unknown function: "y"`,
 			hcl: `
 function x { 
 	arg y {}
-	result = invoke("y", {a: y})
+	body = invoke("y", {a: y})
 }
 			`,
 		},
@@ -370,12 +336,12 @@ function x {
 	}
 }
 
-func TestProcessorCheckRefs(t *testing.T) {
+func TestProcessorCheckRefsV0(t *testing.T) {
 	p := functions.NewProcessor()
 	diags := p.Process(parseFunctionsHCL(t, `
 function plus10 {
 	arg n {}
-	result = n + 10
+	body = n + 10
 }
 `))
 	assert.False(t, diags.HasErrors())
@@ -385,4 +351,28 @@ function plus10 {
 	diags = p.CheckUserFunctionRefs(parseExpression(t, `invoke("plus20",{n : 10})`))
 	assert.True(t, diags.HasErrors())
 	assert.Contains(t, diags.Error(), `expr.hcl:1,8-16: invoke called on unknown function: "plus20"`)
+}
+
+func TestNewNegativeCases1(t *testing.T) {
+	p := functions.NewProcessor()
+	diags := p.Process(parseFunctionsHCL(t, `
+function plus10 {
+	arg n {}
+}
+`))
+	assert.True(t, diags.HasErrors())
+	assert.Contains(t, diags.Error(), `test.hcl:2,1-16: function "plus10" : body or result attribute needed`)
+}
+
+func TestNewNegativeCases2(t *testing.T) {
+	p := functions.NewProcessor()
+	diags := p.Process(parseFunctionsHCL(t, `
+function plus10 {
+	arg n {}
+	body = n + 10
+	result = n + 10
+}
+`))
+	assert.True(t, diags.HasErrors())
+	assert.Contains(t, diags.Error(), `test.hcl:2,1-16: function "plus10" : body and result attributes cannot be specified together`)
 }

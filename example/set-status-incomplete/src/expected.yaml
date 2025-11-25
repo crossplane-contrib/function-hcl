@@ -51,7 +51,7 @@ apiVersion: render.crossplane.io/v1beta1
 kind: Result
 metadata:
   name: r-0
-message: "src/main.hcl:19,12-21,6:discarded composite-status \nself.resource.status.atProvider.arn, src/main.hcl:20,32-39: Attempt to get attribute from null value; This value is null, so it does not have any attributes."
+message: "src/main.hcl:19,5-9:discarded composite-status \nself.resource.status.atProvider.arn, src/main.hcl:20,32-39: Attempt to get attribute from null value; This value is null, so it does not have any attributes."
 severity: SEVERITY_WARNING
 step: "run hcl composition"
 ---
