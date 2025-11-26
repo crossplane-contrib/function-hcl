@@ -4,66 +4,14 @@ import (
 	"testing"
 
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/zclconf/go-cty/cty"
 )
 
-// createTestEvaluator provides a minimal evaluator for testing resource processing.
-func createTestEvaluator(t *testing.T) *Evaluator {
-	evaluator, err := New(Options{})
-	require.NoError(t, err)
-	return evaluator
-}
-
-// createTestEvalContext creates a test context with typical variables for resource processing.
-func createTestEvalContext() *hcl.EvalContext {
-	return &hcl.EvalContext{
-		Variables: map[string]cty.Value{
-			"req": cty.ObjectVal(map[string]cty.Value{
-				"composite": cty.ObjectVal(map[string]cty.Value{
-					"metadata": cty.ObjectVal(map[string]cty.Value{
-						"name":      cty.StringVal("my-composite"),
-						"namespace": cty.StringVal("default"),
-					}),
-					"spec": cty.ObjectVal(map[string]cty.Value{
-						"enabled":     cty.BoolVal(true),
-						"environment": cty.StringVal("production"),
-						"image":       cty.StringVal("nginx:latest"),
-						"region":      cty.StringVal("us-west-2"),
-						"replicas":    cty.NumberIntVal(3),
-					}),
-				}),
-			}),
-			"self": cty.ObjectVal(map[string]cty.Value{
-				"name":     cty.StringVal("test-resource"),
-				"basename": cty.StringVal("test-base"),
-			}),
-		},
-	}
-}
-
-// parseHCL parses HCL content for testing.
-func parseHCL(t *testing.T, evaluator *Evaluator, content string, filename string) *hcl.BodyContent {
-	t.Helper()
-	parser := hclparse.NewParser()
-	file, diags := parser.ParseHCL([]byte(content), filename)
-	evaluator.files[filename] = file
-	require.False(t, diags.HasErrors(), "failed to parse HCL: %s", diags)
-
-	schema := topLevelSchema()
-	contentBody, diags := file.Body.Content(schema)
-	require.False(t, diags.HasErrors(), "failed to get content: %s", diags)
-
-	return contentBody
-}
-
-func TestEvaluator_ProcessResource_Basic(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_Basic(t *testing.T) {
 	hclContent := `
 resource "test-deployment" {
-  body {
+  body = {
     apiVersion = "apps/v1"
     kind       = "Deployment"
     metadata = {
@@ -101,7 +49,7 @@ resource "test-deployment" {
 	assert.Equal(t, float64(3), spec["replicas"])
 }
 
-func TestEvaluator_ProcessResource_WithLocals(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_WithLocals(t *testing.T) {
 	hclContent := `
 resource "test-service" {
   locals {
@@ -109,7 +57,7 @@ resource "test-service" {
     port     = 8080
   }
   
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Service"
     metadata = {
@@ -149,12 +97,12 @@ resource "test-service" {
 	assert.Equal(t, float64(8080), port["port"])
 }
 
-func TestEvaluator_ProcessResource_WithCondition(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_WithCondition(t *testing.T) {
 	hclContent := `
 resource "conditional-resource" {
   condition = req.composite.spec.replicas > 0
   
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "ConfigMap"
     metadata = {
@@ -175,12 +123,12 @@ resource "conditional-resource" {
 	assert.Contains(t, evaluator.desiredResources, "conditional-resource")
 }
 
-func TestEvaluator_ProcessResource_ConditionFalse(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_ConditionFalse(t *testing.T) {
 	hclContent := `
 resource "conditional-resource" {
   condition = req.composite.spec.replicas < 0
   
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "ConfigMap"
     metadata = {
@@ -205,10 +153,10 @@ resource "conditional-resource" {
 	assert.Equal(t, discardReasonUserCondition, evaluator.discards[0].Reason)
 }
 
-func TestEvaluator_ProcessResource_Duplicate(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_Duplicate(t *testing.T) {
 	hclContent := `
 resource "duplicate-name" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "ConfigMap"
     metadata = {
@@ -218,7 +166,7 @@ resource "duplicate-name" {
 }
 
 resource "duplicate-name" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Secret"
     metadata = {
@@ -237,7 +185,7 @@ resource "duplicate-name" {
 	assert.Contains(t, err.Error(), "duplicate resource")
 }
 
-func TestEvaluator_ProcessResources_ForEach(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_ForEach(t *testing.T) {
 	hclContent := `
 resources "databases" {
   for_each = {
@@ -252,7 +200,7 @@ resources "databases" {
   }
   
   template {
-    body {
+    body = {
       apiVersion = "postgresql.cnpg.io/v1"
       kind       = "Cluster"
       metadata = {
@@ -310,13 +258,13 @@ resources "databases" {
 	assert.Equal(t, false, secondaryBackup["enabled"])
 }
 
-func TestEvaluator_ProcessResources_ForEachList(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_ForEachList(t *testing.T) {
 	hclContent := `
 resources "workers" {
   for_each = ["worker-1", "worker-2", "worker-3"]
   
   template {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "Pod"
       metadata = {
@@ -354,14 +302,14 @@ resources "workers" {
 	assert.Equal(t, "worker-1", worker0Labels["worker_name"])
 }
 
-func TestEvaluator_ProcessResources_CustomName(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_CustomName(t *testing.T) {
 	hclContent := `
 resources "apps" {
   for_each = ["frontend", "backend"]
   name     = "${each.value}-service"
   
   template {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "Service"
       metadata = {
@@ -386,14 +334,14 @@ resources "apps" {
 	assert.NotContains(t, evaluator.desiredResources, "apps-1")
 }
 
-func TestEvaluator_ProcessResources_WithCondition(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_WithCondition(t *testing.T) {
 	hclContent := `
 resources "conditional-apps" {
   condition = req.composite.spec.replicas > 1
   for_each  = ["app1", "app2"]
   
   template {
-    body {
+    body = {
       apiVersion = "apps/v1"
       kind       = "Deployment"
       metadata = {
@@ -417,14 +365,14 @@ resources "conditional-apps" {
 	assert.Contains(t, evaluator.desiredResources, "conditional-apps-1")
 }
 
-func TestEvaluator_ProcessResources_ConditionFalse(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_ConditionFalse(t *testing.T) {
 	hclContent := `
 resources "conditional-apps" {
   condition = req.composite.spec.replicas > 10
   for_each  = ["app1", "app2"]
   
   template {
-    body {
+    body = {
       apiVersion = "apps/v1"
       kind       = "Deployment"
       metadata = {
@@ -446,7 +394,7 @@ resources "conditional-apps" {
 	assert.Empty(t, evaluator.desiredResources)
 }
 
-func TestEvaluator_ProcessResources_NoTemplate(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_NoTemplate(t *testing.T) {
 	hclContent := `
 resources "missing-template" {
   for_each = ["item1", "item2"]
@@ -464,19 +412,19 @@ resources "missing-template" {
 	assert.Contains(t, err.Error(), "no template block")
 }
 
-func TestEvaluator_ProcessResources_MultipleTemplates(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_MultipleTemplates(t *testing.T) {
 	hclContent := `
 resources "multiple-templates" {
   for_each = ["item1"]
   
   template {
-    body {
+    body = {
       kind = "ConfigMap"
     }
   }
   
   template {
-    body {
+    body = {
       kind = "Secret"
     }
   }
@@ -492,10 +440,10 @@ resources "multiple-templates" {
 	assert.Contains(t, err.Error(), "multiple template blocks")
 }
 
-func TestEvaluator_ProcessResource_WithReady(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_WithReady(t *testing.T) {
 	hclContent := `
 resource "ready-resource" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Pod"
     metadata = {
@@ -524,10 +472,10 @@ resource "ready-resource" {
 	assert.Equal(t, fnv1.Ready_READY_TRUE, fnv1.Ready(evaluator.ready["ready-resource"]))
 }
 
-func TestEvaluator_ProcessResource_InvalidReadyValue(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_InvalidReadyValue(t *testing.T) {
 	hclContent := `
 resource "invalid-ready" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Pod"
     metadata = {
@@ -550,10 +498,10 @@ resource "invalid-ready" {
 	assert.Contains(t, err.Error(), "does not have a valid value")
 }
 
-func TestEvaluator_ProcessResource_IncompleteBody(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_IncompleteBody(t *testing.T) {
 	hclContent := `
 resource "incomplete-resource" {
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Pod"
     metadata = {
@@ -579,7 +527,7 @@ resource "incomplete-resource" {
 	assert.Equal(t, discardTypeResource, evaluator.discards[0].Type)
 }
 
-func TestEvaluator_ProcessResource_IncompleteNestedLocal(t *testing.T) {
+func TestEvaluatorAttr_ProcessResource_IncompleteNestedLocal(t *testing.T) {
 	hclContent := `
 resource "incomplete-resource" {
   locals {
@@ -595,7 +543,7 @@ resource "incomplete-resource" {
     }
   }
 
-  body {
+  body = {
     apiVersion = "v1"
     kind       = "Pod"
     metadata = {
@@ -626,13 +574,13 @@ resource "incomplete-resource" {
 	assert.Equal(t, evaluator.discards[0].Context[0], "unknown values: manifest.name.foo[0].bar.label_2")
 }
 
-func TestEvaluator_ProcessResources_EmptyForEach(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_EmptyForEach(t *testing.T) {
 	hclContent := `
 resources "empty-collection" {
   for_each = []
   
   template {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "ConfigMap"
       metadata = {
@@ -654,7 +602,7 @@ resources "empty-collection" {
 	assert.Empty(t, evaluator.desiredResources)
 }
 
-func TestEvaluator_ProcessResources_WithResourceLocals(t *testing.T) {
+func TestEvaluatorAttr_ProcessResources_WithResourceLocals(t *testing.T) {
 	hclContent := `
 resources "apps-with-locals" {
   for_each = ["api", "worker"]
@@ -676,7 +624,7 @@ resources "apps-with-locals" {
       selected_port = port_map[app_type]
     }
     
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "Service"
       metadata = {
@@ -740,11 +688,11 @@ resources "apps-with-locals" {
 	assert.Equal(t, float64(3), workerSpec["replicas"]) // from resources-level locals
 }
 
-func TestEvaluator_ProcessGroup_Basic(t *testing.T) {
+func TestEvaluatorAttr_ProcessGroup_Basic(t *testing.T) {
 	hclContent := `
 group {
   resource "app-deployment" {
-    body {
+    body = {
       apiVersion = "apps/v1"
       kind       = "Deployment"
       metadata = {
@@ -754,7 +702,7 @@ group {
   }
   
   resource "app-service" {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "Service"
       metadata = {
@@ -789,7 +737,7 @@ group {
 	assert.Equal(t, "Service", serviceMap["kind"])
 }
 
-func TestEvaluator_ProcessGroup_WithLocals(t *testing.T) {
+func TestEvaluatorAttr_ProcessGroup_WithLocals(t *testing.T) {
 	hclContent := `
 group {
   locals {
@@ -798,7 +746,7 @@ group {
   }
   
   resource "deployment" {
-    body {
+    body = {
       apiVersion = "apps/v1"
       kind       = "Deployment"
       metadata = {
@@ -809,7 +757,7 @@ group {
   }
   
   resource "service" {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "Service"
       metadata = {
@@ -844,13 +792,13 @@ group {
 	assert.Equal(t, "production", serviceMetadata["namespace"])
 }
 
-func TestEvaluator_ProcessGroup_WithCondition(t *testing.T) {
+func TestEvaluatorAttr_ProcessGroup_WithCondition(t *testing.T) {
 	hclContent := `
 group {
   condition = req.composite.spec.environment == "production"
   
   resource "prod-resource" {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "ConfigMap"
       metadata = {
@@ -872,13 +820,13 @@ group {
 	assert.Contains(t, evaluator.desiredResources, "prod-resource")
 }
 
-func TestEvaluator_ProcessGroup_ConditionFalse(t *testing.T) {
+func TestEvaluatorAttr_ProcessGroup_ConditionFalse(t *testing.T) {
 	hclContent := `
 group {
   condition = req.composite.spec.environment == "development"
   
   resource "dev-resource" {
-    body {
+    body = {
       apiVersion = "v1"
       kind       = "ConfigMap"
       metadata = {
@@ -900,7 +848,7 @@ group {
 	assert.NotContains(t, evaluator.desiredResources, "dev-resource")
 }
 
-func TestEvaluator_ProcessGroup_Nested(t *testing.T) {
+func TestEvaluatorAttr_ProcessGroup_Nested(t *testing.T) {
 	hclContent := `
 group {
   locals {
@@ -913,7 +861,7 @@ group {
     }
     
     resource "frontend-deployment" {
-      body {
+      body = {
         apiVersion = "apps/v1"
         kind       = "Deployment"
         metadata = {
@@ -929,7 +877,7 @@ group {
     }
     
     resource "backend-deployment" {
-      body {
+      body = {
         apiVersion = "apps/v1"
         kind       = "Deployment"
         metadata = {
@@ -965,9 +913,15 @@ group {
 	assert.Equal(t, "app-backend", backendMetadata["name"])
 }
 
-func TestEvaluator_ProcessResource_NoBodyBlock(t *testing.T) {
+func TestEvaluator_ProcessResource_NewNegativeCaseForAttr(t *testing.T) {
 	hclContent := `
   resource "connection" {
+    body = {
+      port = 5432  
+    }
+    body {
+      port = 5432  
+    }
   }
 `
 
@@ -977,25 +931,5 @@ func TestEvaluator_ProcessResource_NoBodyBlock(t *testing.T) {
 
 	err := evaluator.processGroup(ctx, content)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), `test.hcl:2,3-24: no body found; one of a body attribute or block is required`)
-}
-
-func TestEvaluator_ProcessResource_MultipleBodyBlocks(t *testing.T) {
-	hclContent := `
-  resource "connection" {
-    body {
-      port = 5432  
-    }
-    body {
-      port = 5432  
-    }
-  }
-`
-	evaluator := createTestEvaluator(t)
-	ctx := createTestEvalContext()
-	content := parseHCL(t, evaluator, hclContent, "test.hcl")
-
-	err := evaluator.processGroup(ctx, content)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), `test.hcl:2,3-24: body block defined more than once`)
+	assert.Contains(t, err.Error(), `test.hcl:2,3-24: invalid resource body; body attribute and block cannot be specified at the same time`)
 }

@@ -23,7 +23,7 @@ status:
 apiVersion: render.crossplane.io/v1beta1
 kind: Result
 message: |-
-  src/main.hcl:21,10-34,4:discarded resource my-bucket
+  src/main.hcl:21,3-7:discarded resource my-bucket
   req.extra_resources.labels-config[0].data.labels, src/main.hcl:27,49-52: Attempt to index null value; This value is null, so it does not have any indices.
   unknown values: req.extra_resources.labels-config[0].data.labels
 severity: SEVERITY_WARNING

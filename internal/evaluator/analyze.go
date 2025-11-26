@@ -232,7 +232,7 @@ func (a *analyzer) analyzeContent(ctx *hcl.EvalContext, parent *hcl.Block, conte
 	// process child blocks
 	for _, block := range content.Blocks {
 		// function blocks have already been statically analyzed at load for bad references.
-		if block.Type == blockLocals || block.Type == blockFunction {
+		if block.Type == blockLocals || block.Type == blockFunction || block.Type == blockBody {
 			continue
 		}
 		childContent, d := block.Body.Content(schemasByBlockType[block.Type])

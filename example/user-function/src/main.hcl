@@ -1,7 +1,4 @@
-function toProviderK8sObject {
-  arg name {
-    description = "metadata name of the return object"
-  }
+function toProviderK8sSpec {
   arg manifest {
     description = "the inner manifest to be wrapped into the k8s provider object"
   }
@@ -10,23 +7,12 @@ function toProviderK8sObject {
     default     = "default"
   }
 
-  locals {
-    objectName = "foo-${name}"
-  }
-
-  body = {
-    apiVersion = "kubernetes.crossplane.io/v1alpha1"
-    kind       = "Object"
-    metadata = {
-      name = objectName
+  result = {
+    forProvider = {
+      manifest = manifest
     }
-    spec = {
-      forProvider = {
-        manifest = manifest
-      }
-      providerConfigRef = {
-        name = providerName
-      }
+    providerConfigRef = {
+      name = providerName
     }
   }
 }
@@ -34,12 +20,18 @@ function toProviderK8sObject {
 resource local-provider-config {
   locals {
     manifest = {
-      apiVersion : "kubernetes.crossplane.io/v1alpha1"
-      kind : "ProviderConfig"
+      apiVersion = "kubernetes.crossplane.io/v1alpha1"
+      kind       = "ProviderConfig"
     }
   }
-  body = invoke("toProviderK8sObject", {
-    name     = "foobar"
-    manifest = manifest
-  })
+  body {
+    apiVersion = "kubernetes.crossplane.io/v1alpha1"
+    kind       = "Object"
+    metadata = {
+      name = "foo-foobar"
+    }
+    spec = invoke("toProviderK8sSpec", {
+      manifest = manifest
+    })
+  }
 }

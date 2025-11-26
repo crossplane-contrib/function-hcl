@@ -42,6 +42,7 @@ const (
 	blockComposite   = "composite"
 	blockContext     = "context"
 	blockLocals      = locals.BlockLocals
+	blockBody        = "body"
 	blockTemplate    = "template"
 	blockReady       = "ready"
 	blockFunction    = functions.BlockFunction

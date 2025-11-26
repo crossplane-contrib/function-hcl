@@ -26,6 +26,7 @@ var (
 	// applicable to resource and template blocks.
 	resourceBlocks = []hcl.BlockHeaderSchema{
 		{Type: blockLocals},
+		{Type: blockBody},
 		{Type: blockReady},
 		{Type: blockComposite, LabelNames: []string{"object"}},
 		{Type: blockContext},
@@ -80,7 +81,7 @@ func resourcesSchema() *hcl.BodySchema {
 func templateSchema() *hcl.BodySchema {
 	return &hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
-			{Name: attrBody, Required: true},
+			{Name: attrBody, Required: false},
 		},
 		Blocks: resourceBlocks,
 	}
@@ -89,7 +90,7 @@ func templateSchema() *hcl.BodySchema {
 func resourceSchema() *hcl.BodySchema {
 	return &hcl.BodySchema{
 		Attributes: []hcl.AttributeSchema{
-			{Name: attrBody, Required: true},
+			{Name: attrBody, Required: false},
 			{Name: attrCondition},
 		},
 		Blocks: resourceBlocks,
@@ -123,9 +124,10 @@ func compositeSchema() *hcl.BodySchema {
 	return &hcl.BodySchema{
 		Blocks: []hcl.BlockHeaderSchema{
 			{Type: blockLocals},
+			{Type: blockBody},
 		},
 		Attributes: []hcl.AttributeSchema{
-			{Name: attrBody, Required: true},
+			{Name: attrBody, Required: false},
 		},
 	}
 }

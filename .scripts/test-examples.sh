@@ -10,7 +10,7 @@ trap 'kill ${bg_pid}; exit 1' INT
 trap 'kill ${bg_pid}' EXIT
 
 filter=${1:-}
-"${SCRIPT_DIR}/gen-comp.sh" ${filter} >/dev/null
+"${SCRIPT_DIR}/gen-comp.sh" ${filter} #>/dev/null
 echo ---
 
 cd  "${SCRIPT_DIR}/../example"
@@ -28,7 +28,9 @@ do
   fi
 
   run=1
+  echo ============================================= >&2
   echo $dir>&2
+  echo ============================================= >&2
   cd $dir
 
   rm -f /tmp/functions.yaml /tmp/results.yaml

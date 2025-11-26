@@ -3,7 +3,7 @@
 resources my-bucket {
 
   locals {
-    params = req.composite.spec.parameters
+    params     = req.composite.spec.parameters
     numBuckets = try(params.numBuckets, 1)
   }
 
@@ -22,19 +22,19 @@ resources my-bucket {
       name = "${req.composite.metadata.name}-bucket-${each.value}"
     }
 
-    body = {
-      apiVersion : "s3.aws.upbound.io/v1beta1"
-      kind : "Bucket"
-      metadata : {
-        name : name
-        annotations: {
-          base-name: self.basename // this has the name given to the resources block
-          crossplane-name: self.name // this has the generated crossplane name of the resource
+    body {
+      apiVersion = "s3.aws.upbound.io/v1beta1"
+      kind       = "Bucket"
+      metadata = {
+        name = name
+        annotations = {
+          base-name       = self.basename // this has the name given to the resources block
+          crossplane-name = self.name     // this has the generated crossplane name of the resource
         }
       }
-      spec : {
-        forProvider : {
-          region : params.region
+      spec = {
+        forProvider = {
+          region = params.region
         }
       }
     }
