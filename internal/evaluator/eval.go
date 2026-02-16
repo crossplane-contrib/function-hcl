@@ -28,6 +28,11 @@ func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (_ *fnv1.
 			diags, ok := finalErr.(hcl.Diagnostics)
 			if ok {
 				finalErr = sortDiagsBySeverity(diags)
+				var msgs []string
+				for _, diag := range diags {
+					msgs = append(msgs, diag.Error())
+				}
+				finalErr = errors.New(strings.Join(msgs, "\n"))
 			}
 		}
 	}()
