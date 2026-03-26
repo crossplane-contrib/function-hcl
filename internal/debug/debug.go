@@ -14,7 +14,6 @@ import (
 	"github.com/crossplane/crossplane-runtime/pkg/fieldpath"
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/ghodss/yaml"
-	"github.com/pkg/errors"
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
@@ -158,7 +157,7 @@ func pavedStr(p *fieldpath.Paved, path string) string {
 func setLabelOrAnnotation(p *fieldpath.Paved, elem, name, value string) error {
 	m, err := p.GetValue("metadata")
 	if err != nil {
-		return errors.Wrap(err, "get metadata")
+		return fmt.Errorf("get metadata: %w", err)
 	}
 	if _, ok := m.(object); !ok {
 		return fmt.Errorf("metadata was not an object")
@@ -278,7 +277,7 @@ func (p *Printer) Response(req *fnv1.RunFunctionRequest, res *fnv1.RunFunctionRe
 
 	err := pavedComp.GetValueInto("spec.claimRef", &cr)
 	if err != nil && !fieldpath.IsNotFound(err) {
-		return errors.Wrap(err, "get claimRef")
+		return fmt.Errorf("get claimRef: %w", err)
 	}
 
 	for name, o := range res.GetDesired().GetResources() {
@@ -286,23 +285,23 @@ func (p *Printer) Response(req *fnv1.RunFunctionRequest, res *fnv1.RunFunctionRe
 		// mimic what crossplane does after calling the function successfully
 		paved := fieldpath.Pave(r)
 		if err = paved.SetValue("metadata.generateName", compName+"-"); err != nil {
-			return errors.Wrap(err, "set metadata.generateName")
+			return fmt.Errorf("set metadata.generateName: %w", err)
 		}
 		if err = paved.SetValue("metadata.ownerReferences", ownerRefs); err != nil {
-			return errors.Wrap(err, "set owner references")
+			return fmt.Errorf("set owner references: %w", err)
 		}
 		if err = setAnnotation(paved, "crossplane.io/composition-resource-name", name); err != nil {
-			return errors.Wrap(err, "set crossplane.io/composition-resource-name annotation")
+			return fmt.Errorf("set crossplane.io/composition-resource-name annotation: %w", err)
 		}
 		if err = setLabel(paved, "crossplane.io/composite", compName); err != nil {
-			return errors.Wrap(err, "set crossplane.io/composite annotation")
+			return fmt.Errorf("set crossplane.io/composite annotation: %w", err)
 		}
 		if cr.name != "" {
 			if err = setLabel(paved, "crossplane.io/claim-name", cr.name); err != nil {
-				return errors.Wrap(err, "set crossplane.io/claim-name annotation")
+				return fmt.Errorf("set crossplane.io/claim-name annotation: %w", err)
 			}
 			if err = setLabel(paved, "crossplane.io/claim-namespace", cr.namespace); err != nil {
-				return errors.Wrap(err, "set crossplane.io/claim-namespace annotation")
+				return fmt.Errorf("set crossplane.io/claim-namespace annotation: %w", err)
 			}
 		}
 		w.yamlDoc(r, "desired object: "+name)
@@ -341,12 +340,12 @@ func (p *Printer) Response(req *fnv1.RunFunctionRequest, res *fnv1.RunFunctionRe
 		// do this in two steps because of the weird Match interface that needs protobuf
 		b, err := protojson.Marshal(res.GetRequirements())
 		if err != nil {
-			return errors.Wrap(err, "marshal requirements")
+			return fmt.Errorf("marshal requirements: %w", err)
 		}
 		var er object
 		err = json.Unmarshal(b, &er)
 		if err != nil {
-			return errors.Wrap(err, "unmarshal requirements")
+			return fmt.Errorf("unmarshal requirements: %w", err)
 		}
 		w.yamlDoc(er, "")
 	}
