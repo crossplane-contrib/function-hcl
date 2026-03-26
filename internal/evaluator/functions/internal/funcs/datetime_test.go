@@ -132,7 +132,7 @@ func TestTimeCmp(t *testing.T) {
 			cty.StringVal("2017-11-22T00:00:00Z"),
 			cty.StringVal("bloop"),
 			cty.UnknownVal(cty.String),
-			`not a valid RFC3339 timestamp: cannot use "bloop" as year`,
+			`not a valid RFC3339 timestamp: cannot use "bloop" as year: parsing time "bloop" as "2006-01-02T15:04:05Z07:00": cannot parse "bloop" as "2006"`,
 		},
 		{
 			cty.StringVal("2017-11-22 00:00:00Z"),

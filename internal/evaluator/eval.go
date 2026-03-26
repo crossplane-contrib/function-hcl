@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
-	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -28,11 +28,11 @@ func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (_ *fnv1.
 			diags, ok := finalErr.(hcl.Diagnostics)
 			if ok {
 				finalErr = sortDiagsBySeverity(diags)
-				var msgs []string
+				var errs []error
 				for _, diag := range diags {
-					msgs = append(msgs, diag.Error())
+					errs = append(errs, diag)
 				}
-				finalErr = errors.New(strings.Join(msgs, "\n"))
+				finalErr = errors.Join(errs...)
 			}
 		}
 	}()
@@ -179,14 +179,14 @@ func (e *Evaluator) toResponse(diags hcl.Diagnostics) (*fnv1.RunFunctionResponse
 	if len(e.compositeStatuses) > 0 {
 		st, err := unify(e.compositeStatuses...)
 		if err != nil {
-			return nil, errors.Wrap(err, "unify composite status")
+			return nil, fmt.Errorf("unify composite status: %w", err)
 		}
 		obj := Object{
 			"status": st,
 		}
 		s, err := structpb.NewStruct(obj)
 		if err != nil {
-			return nil, fmt.Errorf("unexpected error converting composite status: %v", err)
+			return nil, fmt.Errorf("unexpected error converting composite status: %w", err)
 		}
 		ensureDesiredComposite()
 		ret.Desired.Composite.Resource = s
@@ -196,7 +196,7 @@ func (e *Evaluator) toResponse(diags hcl.Diagnostics) (*fnv1.RunFunctionResponse
 		ensureDesiredComposite()
 		u, err := unifyBytes(e.compositeConnections...)
 		if err != nil {
-			return nil, errors.Wrap(err, "unify composite connection")
+			return nil, fmt.Errorf("unify composite connection: %w", err)
 		}
 		ret.Desired.Composite.ConnectionDetails = u
 	}
@@ -204,11 +204,11 @@ func (e *Evaluator) toResponse(diags hcl.Diagnostics) (*fnv1.RunFunctionResponse
 	if len(e.contexts) > 0 {
 		ctx, err := unify(e.contexts...)
 		if err != nil {
-			return nil, errors.Wrap(err, "unify context")
+			return nil, fmt.Errorf("unify context: %w", err)
 		}
 		s, err := structpb.NewStruct(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("unexpected error converting context: %v", err)
+			return nil, fmt.Errorf("unexpected error converting context: %w", err)
 		}
 		ret.Context = s
 	}

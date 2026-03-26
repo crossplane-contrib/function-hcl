@@ -7,7 +7,6 @@ import (
 
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -27,7 +26,7 @@ func (e *Evaluator) trackBaseNames(observedResources map[string]any) (map[string
 		}
 		annotations, found, err := unstructured.NestedStringMap(obj, "metadata", "annotations")
 		if err != nil {
-			return nil, errors.Wrap(err, "accessing observed resource annotations")
+			return nil, fmt.Errorf("accessing observed resource annotations: %w", err)
 		}
 		if !found || annotations == nil {
 			continue
@@ -83,7 +82,7 @@ func (e *Evaluator) makeVars(parent *hcl.EvalContext, in *fnv1.RunFunctionReques
 
 	baseNameMap, err := e.trackBaseNames(observedResourceMap)
 	if err != nil {
-		return nil, errors.Wrap(err, "get base collections")
+		return nil, fmt.Errorf("get base collections: %w", err)
 	}
 
 	out := Object{
@@ -96,17 +95,17 @@ func (e *Evaluator) makeVars(parent *hcl.EvalContext, in *fnv1.RunFunctionReques
 	}
 	jsonBytes, err := json.Marshal(out)
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal variables to json")
+		return nil, fmt.Errorf("marshal variables to json: %w", err)
 	}
 
 	impliedType, err := ctyjson.ImpliedType(jsonBytes)
 	if err != nil {
-		return nil, errors.Wrap(err, "infer types from json")
+		return nil, fmt.Errorf("infer types from json: %w", err)
 	}
 
 	varsValue, err := ctyjson.Unmarshal(jsonBytes, impliedType)
 	if err != nil {
-		return nil, errors.Wrap(err, "unmarshal json")
+		return nil, fmt.Errorf("unmarshal json: %w", err)
 	}
 
 	topMap := varsValue.AsValueMap()

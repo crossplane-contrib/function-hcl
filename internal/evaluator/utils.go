@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl/v2"
-	"github.com/pkg/errors"
 	"github.com/zclconf/go-cty/cty"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -99,12 +98,12 @@ func valueToStructWithAnnotations(val cty.Value, a map[string]string) (*structpb
 
 	jsonBytes, err := ctyjson.Marshal(val, val.Type())
 	if err != nil {
-		return nil, errors.Wrap(err, "marshal cty to json")
+		return nil, fmt.Errorf("marshal cty to json: %w", err)
 	}
 
 	var result map[string]any
 	if err = json.Unmarshal(jsonBytes, &result); err != nil {
-		return nil, errors.Wrap(err, "unmarshal cty to json")
+		return nil, fmt.Errorf("unmarshal cty to json: %w", err)
 	}
 
 	meta, ok := result["metadata"]
@@ -132,7 +131,7 @@ func valueToStructWithAnnotations(val cty.Value, a map[string]string) (*structpb
 	}
 	ret, err := structpb.NewStruct(result)
 	if err != nil {
-		return nil, errors.Wrapf(err, "convert result to struct")
+		return nil, fmt.Errorf("convert result to struct: %w", err)
 	}
 	return ret, nil
 }
