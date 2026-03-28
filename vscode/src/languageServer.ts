@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { ExtensionContext } from 'vscode';
 
-const BINARY_NAME = 'function-hcl-ls';
+const BINARY_NAME = process.platform === 'win32' ? 'function-hcl-ls.exe' : 'function-hcl-ls';
 
 /**
  * Get the path to the bundled language server binary.

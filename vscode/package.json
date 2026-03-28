@@ -54,13 +54,13 @@
     "commands": []
   },
   "scripts": {
-    "vscode:prepublish": "cp ../LICENSE LICENSE.txt 2>/dev/null; node build/downloadServer.mjs && node esbuild.js --production",
+    "vscode:prepublish": "node -e \"require('fs').copyFileSync('../LICENSE','LICENSE.txt')\" && node build/downloadServer.mjs && node esbuild.js --production",
     "compile": "node esbuild.js",
     "watch": "node esbuild.js --watch",
     "package": "vsce package",
     "download:server": "node build/downloadServer.mjs",
     "test": "tsc -p . && vscode-test",
-    "clean": "rm -rf bin dist out node_modules",
+    "clean": "node -e \"const fs=require('fs');['bin','dist','out','node_modules'].forEach(d=>fs.rmSync(d,{recursive:true,force:true}))\"",
     "setup": "npm ci --ignore-scripts && node build/downloadServer.mjs && node esbuild.js"
   },
   "devDependencies": {

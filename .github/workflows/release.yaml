@@ -111,6 +111,8 @@ jobs:
             ls_tarball: function-hcl-ls-linux-arm64.tar.gz
           - vscode_target: linux-x64
             ls_tarball: function-hcl-ls-linux-amd64.tar.gz
+          - vscode_target: win32-x64
+            ls_tarball: function-hcl-ls-windows-amd64.tar.gz
     steps:
       - name: Checkout
         uses: actions/checkout@v4

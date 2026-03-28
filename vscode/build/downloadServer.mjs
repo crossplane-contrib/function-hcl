@@ -19,10 +19,11 @@ const TARGET_MAP = {
     'darwin-x64':    { os: 'darwin',  arch: 'amd64' },
     'linux-arm64':   { os: 'linux',   arch: 'arm64' },
     'linux-x64':     { os: 'linux',   arch: 'amd64' },
+    'win32-x64':     { os: 'windows', arch: 'amd64' },
 };
 
 // Node.js process values → Go os/arch mapping (for local dev)
-const PLATFORM_MAP = { darwin: 'darwin', linux: 'linux' };
+const PLATFORM_MAP = { darwin: 'darwin', linux: 'linux', win32: 'windows' };
 const ARCH_MAP = { x64: 'amd64', arm64: 'arm64' };
 
 function parseArgs() {
@@ -67,8 +68,9 @@ async function main() {
     const { target, localTarball } = parseArgs();
     const { os, arch } = resolveOsArch(target);
 
+    const binaryFile = os === 'windows' ? `${BINARY_NAME}.exe` : BINARY_NAME;
     const binDir = join(__dirname, '..', 'bin');
-    const binaryPath = join(binDir, BINARY_NAME);
+    const binaryPath = join(binDir, binaryFile);
 
     if (existsSync(binaryPath)) {
         log(`Language server already exists at ${binaryPath}, skipping.`);
@@ -81,17 +83,17 @@ async function main() {
 
     if (localTarball) {
         // CI path: extract from a local tarball (already downloaded as workflow artifact)
-        log(`Extracting ${BINARY_NAME} from local tarball: ${localTarball}`);
+        log(`Extracting ${binaryFile} from local tarball: ${localTarball}`);
         await extract({
             file: localTarball,
             cwd: binDir,
-            filter: (entryPath) => entryPath.endsWith(BINARY_NAME),
+            filter: (entryPath) => entryPath.endsWith(binaryFile),
         });
     } else {
         // Local dev path: download latest release from GitHub
         const version = await getLatestVersion();
         const url = `https://github.com/${GITHUB_REPO}/releases/download/v${version}/${assetName}`;
-        log(`Downloading ${BINARY_NAME} v${version} for ${os}/${arch}...`);
+        log(`Downloading ${binaryFile} v${version} for ${os}/${arch}...`);
 
         const tarballPath = join(binDir, assetName);
         try {
@@ -99,7 +101,7 @@ async function main() {
             await extract({
                 file: tarballPath,
                 cwd: binDir,
-                filter: (entryPath) => entryPath.endsWith(BINARY_NAME),
+                filter: (entryPath) => entryPath.endsWith(binaryFile),
             });
         } finally {
             if (existsSync(tarballPath)) {
@@ -109,10 +111,12 @@ async function main() {
     }
 
     if (!existsSync(binaryPath)) {
-        throw new Error(`Binary '${BINARY_NAME}' not found in archive`);
+        throw new Error(`Binary '${binaryFile}' not found in archive`);
     }
 
-    chmodSync(binaryPath, 0o755);
+    if (os !== 'windows') {
+        chmodSync(binaryPath, 0o755);
+    }
     log(`Language server ready at ${binaryPath}`);
 }
 
