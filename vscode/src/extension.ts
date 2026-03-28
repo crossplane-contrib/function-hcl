@@ -45,6 +45,9 @@ async function startLanguageClient(context: ExtensionContext, serverPath: string
     const watcher = workspace.createFileSystemWatcher('**/*.hcl');
     context.subscriptions.push(watcher);
 
+    const outputChannel = window.createOutputChannel('function-hcl language server');
+    context.subscriptions.push(outputChannel);
+
     const clientOptions: LanguageClientOptions = {
         documentSelector: [
             { pattern: '**/*.hcl' },
@@ -52,7 +55,7 @@ async function startLanguageClient(context: ExtensionContext, serverPath: string
         synchronize: {
             fileEvents: watcher,
         },
-        outputChannel: window.createOutputChannel('function-hcl language server'),
+        outputChannel,
     };
 
     client = new LanguageClient(
