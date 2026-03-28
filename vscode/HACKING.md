@@ -58,15 +58,15 @@ attached to the GitHub release.
   Marketplace > Manage scope, stored as a GitHub Actions secret in the repository.
 - **`publisher` in `package.json`** — currently set to `function-hcl-authors`.
   This must match the publisher ID registered at https://marketplace.visualstudio.com/manage.
-- To create a PAT you need to go to this URL (which cannot be found from the Azure portal),
-  https://dev.azure.com/, go to User Settings and
+- To create a PAT you need to go to this URL (which cannot be found from the Azure portal, as far as I could tell),
+  https://dev.azure.com/, go to User Settings and create one.
 
 ## npm scripts
 
 | Script                    | Command                                                                                                                                               |
 |---------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `npm run compile`         | Bundles the extension into `dist/extension.js` using esbuild                                                                                          |
-| `npm run watch`           | Runs the TypeScript compiler in watch mode, recompiling on file changes. Used by the debug launch configuration                                       |
+| `npm run watch`           | Runs esbuild in watch mode, rebuilding `dist/extension.js` on file changes. Used by the debug launch configuration                                    |
 | `npm run package`         | Produces a `.vsix` package for local installation                                                                                                     |
 | `npm run download:server` | Downloads the language server binary for your platform into `bin/`. Accepts `--target` and `--local-tarball` flags                                    |
 | `npm run clean`           | Removes all generated directories: `bin/`, `dist/`, `out/`, and `node_modules/`                                                                       |
@@ -81,7 +81,7 @@ attached to the GitHub release.
 | `src/languageServer.ts`       | Returns the path to the bundled language server binary                                                                                               |
 | `src/test/extension.test.ts`  | Extension test suite                                                                                                                                 |
 | `build/downloadServer.mjs`    | Build-time script that downloads the language server binary from GitHub releases into `bin/`. Supports `--target` and `--local-tarball` flags for CI |
-| `package.json`                | Extension manifest — metadata, dependencies, scripts, VS Code contribution points, and the `languageServerVersion` used by the download script       |
+| `package.json`                | Extension manifest — metadata, dependencies, scripts, VS Code contribution points                                                                    |
 | `esbuild.js`                  | Bundles the TypeScript source into a single `dist/extension.js` using esbuild                                                                        |
 | `tsconfig.json`               | TypeScript compiler configuration                                                                                                                    |
 | `eslint.config.mjs`           | ESLint configuration                                                                                                                                 |

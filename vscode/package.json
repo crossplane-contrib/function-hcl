@@ -3,7 +3,7 @@
   "displayName": "function-hcl-vscode-extension",
   "publisher": "function-hcl-authors",
   "description": "support for function-hcl DSL",
-  "repository": "github:elastic/function-hcl-vscode-extension",
+  "repository": "https://github.com/crossplane-contrib/function-hcl/tree/main/vscode",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.106.1"
@@ -54,9 +54,9 @@
     "commands": []
   },
   "scripts": {
-    "vscode:prepublish": "node build/downloadServer.mjs && node esbuild.js --production",
+    "vscode:prepublish": "cp ../LICENSE LICENSE.txt 2>/dev/null; node build/downloadServer.mjs && node esbuild.js --production",
     "compile": "node esbuild.js",
-    "watch": "tsc -b -w",
+    "watch": "node esbuild.js --watch",
     "package": "vsce package",
     "download:server": "node build/downloadServer.mjs",
     "clean": "rm -rf bin dist out node_modules",

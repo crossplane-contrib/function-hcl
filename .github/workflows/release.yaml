@@ -169,7 +169,11 @@ jobs:
           merge-multiple: true
 
       - name: Publish to VS Code Marketplace
-        run: npx @vscode/vsce publish --packagePath vsix/*.vsix
+        run: |
+          for vsix in vsix/*.vsix; do
+            echo "Publishing ${vsix}..."
+            npx @vscode/vsce publish --packagePath "$vsix"
+          done
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 

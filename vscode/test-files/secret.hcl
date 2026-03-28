@@ -10,7 +10,7 @@ resource my_secret {
     type = "Opaque"
     stringData = {
       username = "admin"
-      password = "secret123"
+      password = "not-a-real-secret" # non-sensitive test data
     }
   }
 }
