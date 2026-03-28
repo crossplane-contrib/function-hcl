@@ -1,4 +1,6 @@
 import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import {ExtensionContext, window, workspace} from 'vscode';
 import {LanguageClient, LanguageClientOptions, ServerOptions, TransportKind} from 'vscode-languageclient/node';
 import {getBundledServerPath} from './languageServer';
@@ -10,7 +12,7 @@ console.log('Extension module loaded');
 export async function activate(context: ExtensionContext) {
     try {
         const serverPath = getLanguageServerPath(context);
-        await startLanguageClient(serverPath);
+        await startLanguageClient(context, serverPath);
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         window.showErrorMessage(`Failed to start function-hcl language server: ${errorMessage}`);
@@ -26,7 +28,7 @@ export function deactivate(): Thenable<void> | undefined {
     return client.stop();
 }
 
-async function startLanguageClient(serverPath: string): Promise<void> {
+async function startLanguageClient(context: ExtensionContext, serverPath: string): Promise<void> {
     const serverOptions: ServerOptions = {
         run: {
             command: serverPath,
@@ -40,12 +42,15 @@ async function startLanguageClient(serverPath: string): Promise<void> {
         },
     };
 
+    const watcher = workspace.createFileSystemWatcher('**/*.hcl');
+    context.subscriptions.push(watcher);
+
     const clientOptions: LanguageClientOptions = {
         documentSelector: [
             { pattern: '**/*.hcl' },
         ],
         synchronize: {
-            fileEvents: workspace.createFileSystemWatcher('**/*.hcl'),
+            fileEvents: watcher,
         },
         outputChannel: window.createOutputChannel('function-hcl language server'),
     };
@@ -57,7 +62,6 @@ async function startLanguageClient(serverPath: string): Promise<void> {
         clientOptions
     );
 
-    client.outputChannel.show();
     await client.start();
 }
 
@@ -67,25 +71,34 @@ function getLanguageServerPath(context: ExtensionContext): string {
     // Priority 1: User-provided path from VSCode settings
     const userPath = config.get<string>('languageServerPath');
     if (userPath && userPath.trim() !== '') {
-        if (fs.existsSync(userPath)) {
-            console.log(`Using user-provided language server at: ${userPath}`);
-            return userPath;
+        const resolved = resolvePath(userPath);
+        if (fs.existsSync(resolved)) {
+            console.log(`Using user-provided language server at: ${resolved}`);
+            return resolved;
         } else {
-            throw new Error(`Configured language server path does not exist: ${userPath}`);
+            throw new Error(`Configured language server path does not exist: ${resolved}`);
         }
     }
 
     // Priority 2: Environment variable
     const envPath = process.env.FUNCTION_HCL_LS_PATH;
     if (envPath && envPath.trim() !== '') {
-        if (fs.existsSync(envPath)) {
-            console.log(`Using language server from FUNCTION_HCL_LS_PATH: ${envPath}`);
-            return envPath;
+        const resolved = resolvePath(envPath);
+        if (fs.existsSync(resolved)) {
+            console.log(`Using language server from FUNCTION_HCL_LS_PATH: ${resolved}`);
+            return resolved;
         } else {
-            throw new Error(`FUNCTION_HCL_LS_PATH does not exist: ${envPath}`);
+            throw new Error(`FUNCTION_HCL_LS_PATH does not exist: ${resolved}`);
         }
     }
 
     // Priority 3: Bundled binary
     return getBundledServerPath(context);
+}
+
+function resolvePath(p: string): string {
+    if (p.startsWith('~')) {
+        p = path.join(os.homedir(), p.slice(1));
+    }
+    return path.resolve(p);
 }
