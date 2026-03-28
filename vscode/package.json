@@ -59,6 +59,7 @@
     "watch": "node esbuild.js --watch",
     "package": "vsce package",
     "download:server": "node build/downloadServer.mjs",
+    "test": "tsc -p . && vscode-test",
     "clean": "rm -rf bin dist out node_modules",
     "setup": "npm ci --ignore-scripts && node build/downloadServer.mjs && node esbuild.js"
   },
