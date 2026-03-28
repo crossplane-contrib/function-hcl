@@ -1,0 +1,82 @@
+{
+  "name": "function-hcl-vscode-extension",
+  "displayName": "function-hcl-vscode-extension",
+  "publisher": "function-hcl-authors",
+  "description": "support for function-hcl DSL",
+  "repository": "github:elastic/function-hcl-vscode-extension",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.106.1"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "activationEvents": [
+    "language:hcl"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "hcl",
+        "aliases": [
+          "HCL"
+        ],
+        "extensions": [
+          ".hcl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "hcl",
+        "scopeName": "source.hcl",
+        "path": "./syntaxes/hcl.tmGrammar.json"
+      }
+    ],
+    "configuration": {
+      "title": "function-hcl",
+      "properties": {
+        "function-hcl.languageServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom path to the language server binary. If set, this takes precedence over the bundled version."
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[hcl]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true
+      }
+    },
+    "commands": []
+  },
+  "scripts": {
+    "vscode:prepublish": "node build/downloadServer.mjs && node esbuild.js --production",
+    "compile": "node esbuild.js",
+    "watch": "tsc -b -w",
+    "package": "vsce package",
+    "download:server": "node build/downloadServer.mjs",
+    "clean": "rm -rf bin dist out node_modules",
+    "setup": "npm ci --ignore-scripts && node build/downloadServer.mjs && node esbuild.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "22.x",
+    "@types/vscode": "^1.106.1",
+    "@vscode/test-cli": "^0.0.11",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.7.1",
+    "esbuild": "^0.27.2",
+    "eslint": "^9.39.1",
+    "ts-loader": "^9.5.4",
+    "typescript": "^5.9.3",
+    "tar": "^7.5.13",
+    "typescript-eslint": "^8.46.3"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
+  }
+}

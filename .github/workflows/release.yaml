@@ -12,7 +12,7 @@ env:
   GO_VERSION: '1.25.4'
 
 jobs:
-  release:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -90,6 +90,89 @@ jobs:
           cd dist
           shasum -a 256 *.tar.gz > checksums.txt
 
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  vscode-package:
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - vscode_target: darwin-arm64
+            ls_tarball: function-hcl-ls-darwin-arm64.tar.gz
+          - vscode_target: darwin-x64
+            ls_tarball: function-hcl-ls-darwin-amd64.tar.gz
+          - vscode_target: linux-arm64
+            ls_tarball: function-hcl-ls-linux-arm64.tar.gz
+          - vscode_target: linux-x64
+            ls_tarball: function-hcl-ls-linux-amd64.tar.gz
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install dependencies
+        working-directory: vscode
+        run: npm ci --ignore-scripts
+
+      - name: Extract language server binary
+        working-directory: vscode
+        run: node build/downloadServer.mjs --target ${{ matrix.vscode_target }} --local-tarball ../dist/${{ matrix.ls_tarball }}
+
+      - name: Build extension
+        working-directory: vscode
+        run: node esbuild.js --production
+
+      - name: Package extension
+        working-directory: vscode
+        run: npx vsce package --target ${{ matrix.vscode_target }}
+
+      - name: Upload vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vsix-${{ matrix.vscode_target }}
+          path: vscode/*.vsix
+          retention-days: 1
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - vscode-package
+    steps:
+      - name: Download dist artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Download all vsix artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: vsix-*
+          path: vsix/
+          merge-multiple: true
+
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --packagePath vsix/*.vsix
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -97,3 +180,4 @@ jobs:
           files: |
             dist/*.tar.gz
             dist/checksums.txt
+            vsix/*.vsix
