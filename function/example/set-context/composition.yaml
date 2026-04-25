@@ -17,7 +17,7 @@ spec:
         kind: HclInput
         source: Inline
         hcl: |
-          -- src/main.hcl --
+          -- main.hcl --
           context {
             key   = "processed"
             value = req.composite.metadata.name

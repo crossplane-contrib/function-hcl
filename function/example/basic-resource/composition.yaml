@@ -17,7 +17,7 @@ spec:
         kind: HclInput
         source: Inline
         hcl: |
-          -- src/main.hcl --
+          -- main.hcl --
 
           // the resource block defines a single resource to be created, the name is the crossplane name
           resource my-bucket {

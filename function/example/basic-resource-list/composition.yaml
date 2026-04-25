@@ -17,7 +17,7 @@ spec:
         kind: HclInput
         source: Inline
         hcl: |
-          -- src/main.hcl --
+          -- main.hcl --
           // the resources block defines multiple resources to be created, the associated name is
           // used as a basename.
           resources my-bucket {

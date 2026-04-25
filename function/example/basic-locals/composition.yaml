@@ -18,7 +18,7 @@ spec:
         debug: true
         source: Inline
         hcl: |+
-          -- src/main.hcl --
+          -- main.hcl --
           // top-level locals behave like Terraform locals and are available everywhere
           // and accessed just using their name (no need to put "local." in front of it like Terraform)
           locals {
