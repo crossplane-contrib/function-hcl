@@ -65,13 +65,9 @@ func (l *loader) loadArchive(dir string) (*txtar.Archive, []evaluator.File, erro
 	var archive txtar.Archive
 	var files []evaluator.File
 	for _, file := range fsFiles {
-		fileToRead := file
-		if !filepath.IsAbs(file) {
-			fileToRead = filepath.Join(dir, file)
-		}
 		// since the file list has file relative to the directory loaded
 		// we need to make it relative to the working directory instead.
-		contents, err := l.fs.ReadFile(fileToRead)
+		contents, err := l.fs.ReadFile(filepath.Join(dir, file))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -146,9 +142,10 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 	}
 
 	for _, file := range cfg.LibraryFiles {
-		if !filepath.IsAbs(file) {
-			file = filepath.Clean(filepath.Join(dir, file))
+		if filepath.IsAbs(file) {
+			return nil, fmt.Errorf("library file %q is an absolute path, not allowed", file)
 		}
+		file = filepath.Clean(filepath.Join(dir, file))
 		s, err := l.fs.Stat(file)
 		if err != nil {
 			return nil, errors.Wrapf(err, "stat %s", file)
@@ -160,12 +157,18 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 	}
 
 	var outFiles []string
+	seen := map[string]bool{}
+
 	for _, file := range files {
 		rel, err := filepath.Rel(dir, file)
 		if err != nil {
 			return nil, err
 		}
+		if seen[rel] {
+			continue
+		}
 		outFiles = append(outFiles, rel)
+		seen[rel] = true
 	}
 	return outFiles, nil
 }

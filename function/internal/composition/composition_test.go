@@ -195,22 +195,12 @@ func TestPackage_AbsoluteLibraryPath(t *testing.T) {
 	compDir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(compDir, "main.hcl"), []byte(validResourceHCL), 0o644))
 
-	configContent := fmt.Sprintf("version: \"1.0\"\nlibraryFiles:\n  - %s\n", libFile)
+	configContent := fmt.Sprintf("libraryFiles:\n  - %s\n", libFile)
 	require.NoError(t, os.WriteFile(filepath.Join(compDir, ConfigFile), []byte(configContent), 0o644))
 
-	b, err := Package(compDir, true) // skip analysis; lib function isn't used
-	require.NoError(t, err)
-
-	archive := txtar.Parse(b)
-	require.Len(t, archive.Files, 2)
-
-	var foundLib bool
-	for _, f := range archive.Files {
-		if strings.HasSuffix(f.Name, "mylib.hcl") {
-			foundLib = true
-		}
-	}
-	assert.True(t, foundLib, "absolute-path library file must appear in archive")
+	_, err := Package(compDir, true) // skip analysis; lib function isn't used
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "is an absolute path, not allowed")
 }
 
 func TestPackage_RelativeLibraryPath(t *testing.T) {

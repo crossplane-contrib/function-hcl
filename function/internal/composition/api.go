@@ -18,7 +18,6 @@ type XRD struct {
 
 // FS is the minimal filesystem interface needed to load files for a module.
 type FS interface {
-	fs.FS
 	Stat(name string) (fs.FileInfo, error)
 	ReadDir(name string) ([]fs.DirEntry, error)
 	ReadFile(name string) ([]byte, error)

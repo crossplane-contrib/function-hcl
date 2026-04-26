@@ -11,7 +11,7 @@ import (
 
 func getDir(args []string) (string, error) {
 	if len(args) > 1 {
-		return "", fmt.Errorf("require zero or exactly one argument, found %d", len(args))
+		return "", fmt.Errorf("zero or exactly one argument expected, found %d", len(args))
 	}
 	dir := "."
 	if len(args) == 1 {
