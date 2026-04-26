@@ -37,5 +37,12 @@ func LoadModule(fs FS, dir string) (*XRD, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	return &cfg.XRD, files, nil
+	var xrd *composition.XRD
+	if cfg != nil {
+		xrd = &cfg.XRD
+	}
+	if xrd != nil && (xrd.APIVersion == "" || xrd.Kind == "") {
+		xrd = nil
+	}
+	return xrd, files, nil
 }
