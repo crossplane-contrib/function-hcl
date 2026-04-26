@@ -181,7 +181,7 @@ func TestPackage_WithAnalysis_InvalidHCL(t *testing.T) {
 }
 
 func TestPackage_AbsoluteLibraryPath(t *testing.T) {
-	// Library files specified with absolute paths should be resolved as-is.
+	// Library files specified with absolute paths should be rejected.
 	libDir := t.TempDir()
 	libFile := filepath.Join(libDir, "mylib.hcl")
 	libContent := `function mylib {
