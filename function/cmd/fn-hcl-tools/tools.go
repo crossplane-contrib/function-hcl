@@ -22,7 +22,7 @@ func getDir(args []string) (string, error) {
 
 func analyzeCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "analyze <dir>",
+		Use:   "analyze [dir]",
 		Short: "perform a static analysis of the supplied directory (default is current directory)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, err := getDir(args)
@@ -39,7 +39,7 @@ func analyzeCommand() *cobra.Command {
 func packageScriptCommand() *cobra.Command {
 	var skipAnalysis bool
 	c := &cobra.Command{
-		Use:   "package <dir>",
+		Use:   "package [dir]",
 		Short: "generate a txtar script for the supplied directory (default is current directory)",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			dir, err := getDir(args)

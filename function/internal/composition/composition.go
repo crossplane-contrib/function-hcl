@@ -106,6 +106,7 @@ func (l *loader) loadConfig(dir string) (*Config, error) {
 		if os.IsNotExist(err) {
 			return &cfg, nil
 		}
+		return nil, err
 	}
 	if st.IsDir() {
 		return nil, errors.Errorf("%s is a directory", file)
@@ -126,7 +127,7 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 	var files []string
 	allFiles, err := l.fs.ReadDir(dir)
 	if err != nil {
-		return nil, errors.Wrapf(err, "glob %s", filepath.Join(dir, "*.hcl"))
+		return nil, err
 	}
 
 	for _, entry := range allFiles {
