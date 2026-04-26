@@ -26,7 +26,6 @@ type FS interface {
 // Config represents the configuration for the composition in terms of library file requirements
 // and XRD type information.
 type Config struct {
-	Version      string   `json:"version"`
 	XRD          XRD      `json:"xrd"`
 	LibraryFiles []string `json:"libraryFiles"`
 }
