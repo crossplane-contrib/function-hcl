@@ -3,18 +3,16 @@ package modules
 import (
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
-	"github.com/crossplane-contrib/function-hcl/api"
+	"github.com/crossplane-contrib/function-hcl/function/api"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/document"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/eventbus"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/features/modules/store"
 	lsp "github.com/crossplane-contrib/function-hcl/language-server/internal/langserver/protocol"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/utils/perf"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/utils/queue"
-	"github.com/ghodss/yaml"
 	"github.com/hashicorp/hcl/v2"
 )
 
@@ -141,20 +139,6 @@ func (m *Modules) onChangeWatch(changeType lsp.FileChangeType, rawPath string, i
 	return nil
 }
 
-func (m *Modules) getXRD(dir string) *store.XRD {
-	b, err := m.fs.ReadFile(filepath.Join(dir, XRDFile))
-	if err != nil {
-		return nil
-	}
-	var xrd store.XRD
-	err = yaml.Unmarshal(b, &xrd)
-	if err != nil {
-		log.Printf("error parsing XRD file %q: %s", filepath.Join(dir, XRDFile), err)
-		return nil
-	}
-	return &xrd
-}
-
 func (m *Modules) analyze(content *store.Content, dir string) {
 	m.queue.Enqueue(queue.Key(dir+":analysis"), func() error {
 		var files []api.File
@@ -203,11 +187,14 @@ func (m *Modules) incrementalParse(content *store.Content, filePath string) erro
 func (m *Modules) fullParse(dir string) func() error {
 	return func() error {
 		defer perf.Measure("fullParse")()
-		files, diags, err := m.loadAndParseModule(dir)
+		xrd, sourceFiles, err := api.LoadModule(m.fs, dir, true)
 		if err != nil {
 			return err
 		}
-		xrd := m.getXRD(dir)
+		files, diags, err := m.loadAndParseModule(dir, sourceFiles)
+		if err != nil {
+			return err
+		}
 		dd := m.deriveData(dir, files, xrd)
 		content := store.Content{
 			Path:    dir,

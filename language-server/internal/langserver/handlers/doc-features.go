@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/crossplane-contrib/function-hcl/api"
+	"github.com/crossplane-contrib/function-hcl/function/api"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/document"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/document/diff"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/funchcl/decoder"

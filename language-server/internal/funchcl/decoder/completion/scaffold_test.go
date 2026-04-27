@@ -146,9 +146,9 @@ func newTextScaffold(t *testing.T, text string, xrd *xrd) *scaffold {
 	err = os.WriteFile(filepath.Join(tmpDir, testFileName), []byte(text), 0o644)
 	require.NoError(t, err)
 	if xrd != nil {
-		b, err := yaml.Marshal(xrd)
+		b, err := yaml.Marshal(map[string]any{"xrd": xrd})
 		require.NoError(t, err)
-		err = os.WriteFile(filepath.Join(tmpDir, ".xrd.yaml"), b, 0o644)
+		err = os.WriteFile(filepath.Join(tmpDir, "composition.yaml"), b, 0o644)
 		require.NoError(t, err)
 	}
 	return newScaffold(t, tmpDir, testFileName)
