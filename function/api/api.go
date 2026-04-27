@@ -32,8 +32,8 @@ type XRD = composition.XRD
 
 // LoadModule loads metadata and HCL files from the supplied directory and returns the
 // results. File paths are relative to the directory that was processed.
-func LoadModule(fs FS, dir string) (*XRD, []string, error) {
-	cfg, files, err := composition.Load(fs, dir)
+func LoadModule(fs FS, dir string, ignoreMetadataErrors bool) (*XRD, []string, error) {
+	cfg, files, err := composition.Load(fs, dir, ignoreMetadataErrors)
 	if err != nil {
 		return nil, nil, err
 	}

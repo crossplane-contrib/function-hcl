@@ -32,8 +32,9 @@ type Config struct {
 
 // Load returns composition information and a list of files to process from a specific directory.
 // File paths in the list are relative to the directory that was loaded.
-func Load(fs FS, dir string) (*Config, []string, error) {
+func Load(fs FS, dir string, ignoreMetadataErrors bool) (*Config, []string, error) {
 	l := newLoader(fs)
+	l.ignoreMetadataErrors = ignoreMetadataErrors
 	return l.load(dir)
 }
 

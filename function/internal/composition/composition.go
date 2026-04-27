@@ -34,7 +34,8 @@ func doAnalyze(files []evaluator.File) error {
 }
 
 type loader struct {
-	fs FS
+	fs                   FS
+	ignoreMetadataErrors bool
 }
 
 func newLoader(fs FS) *loader {
@@ -48,7 +49,11 @@ func (l *loader) load(dir string) (*Config, []string, error) {
 	}
 	cfg, err := l.loadConfig(dir)
 	if err != nil {
-		return nil, nil, err
+		if !l.ignoreMetadataErrors {
+			return nil, nil, err
+		}
+		log.Printf("WARN: ignore metadata load error: %v", err)
+		cfg = &Config{}
 	}
 	fsFiles, err := l.fileList(dir, cfg)
 	if err != nil {
@@ -143,15 +148,30 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 
 	for _, file := range cfg.LibraryFiles {
 		if filepath.IsAbs(file) {
-			return nil, fmt.Errorf("library file %q is an absolute path, not allowed", file)
+			errMsg := fmt.Sprintf("library file %q is an absolute path, not allowed", file)
+			if l.ignoreMetadataErrors {
+				log.Println(errMsg)
+				continue
+			}
+			return nil, errors.New(errMsg)
 		}
 		file = filepath.Clean(filepath.Join(dir, file))
 		s, err := l.fs.Stat(file)
 		if err != nil {
-			return nil, errors.Wrapf(err, "stat %s", file)
+			errMsg := fmt.Sprintf("stat %s: %v", file, err)
+			if l.ignoreMetadataErrors {
+				log.Println(errMsg)
+				continue
+			}
+			return nil, errors.New(errMsg)
 		}
 		if s.IsDir() {
-			return nil, errors.Errorf("library file %s cannot be a directory", file)
+			errMsg := fmt.Sprintf("library file %s cannot be a directory", file)
+			if l.ignoreMetadataErrors {
+				log.Println(errMsg)
+				continue
+			}
+			return nil, errors.New(errMsg)
 		}
 		files = append(files, file)
 	}
