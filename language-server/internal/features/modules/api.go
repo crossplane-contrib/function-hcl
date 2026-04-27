@@ -23,13 +23,6 @@ import (
 	"github.com/hashicorp/hcl/v2"
 )
 
-const (
-	// XRDFile is a metadata file in the same directory as a module to discover
-	// the API version and kind of the composite resource such that this can
-	// provide intelligent completion for the `req.composite` external variable.
-	XRDFile = ".xrd.yaml"
-)
-
 // dependencies
 
 // ReadOnlyFS is a read-only filesystem needed for module processing.

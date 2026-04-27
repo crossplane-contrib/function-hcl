@@ -19,26 +19,14 @@ func isModuleFilename(name string) bool {
 	return strings.HasSuffix(name, ".hcl")
 }
 
-func (m *Modules) loadAndParseModule(modPath string) (map[string]*hcl.File, map[string]hcl.Diagnostics, error) {
+func (m *Modules) loadAndParseModule(modPath string, sourceFiles []string) (map[string]*hcl.File, map[string]hcl.Diagnostics, error) {
 	fs := m.fs
 	parser := hclparse.NewParser()
 	files := map[string]*hcl.File{}
 	diags := map[string]hcl.Diagnostics{}
 
-	infos, err := fs.ReadDir(modPath)
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, info := range infos {
-		if info.IsDir() {
-			continue
-		}
-		name := info.Name()
-		if !isModuleFilename(name) {
-			continue
-		}
-		fullPath := filepath.Join(modPath, name)
-		src, err := fs.ReadFile(fullPath)
+	for _, name := range sourceFiles {
+		src, err := fs.ReadFile(filepath.Join(modPath, name))
 		if err != nil {
 			m.logger.Printf("error reading file: %v", err)
 			// If a file isn't accessible, continue with reading the

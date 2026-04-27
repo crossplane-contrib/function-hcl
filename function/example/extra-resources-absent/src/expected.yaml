@@ -15,7 +15,7 @@ status:
       status: "False"
       type: FullyResolved
     - lastTransitionTime: "2024-01-01T00:00:00Z"
-      message: 'hcl.Diagnostics contains 1 warnings; src/main.hcl:27,49-52: Attempt to index null value'
+      message: 'hcl.Diagnostics contains 1 warnings; main.hcl:27,49-52: Attempt to index null value'
       reason: Eval
       status: "False"
       type: HclDiagnostics
@@ -23,8 +23,8 @@ status:
 apiVersion: render.crossplane.io/v1beta1
 kind: Result
 message: |-
-  src/main.hcl:21,10-34,4:discarded resource my-bucket
-  req.extra_resources.labels-config[0].data.labels, src/main.hcl:27,49-52: Attempt to index null value; This value is null, so it does not have any indices.
+  main.hcl:21,10-34,4:discarded resource my-bucket
+  req.extra_resources.labels-config[0].data.labels, main.hcl:27,49-52: Attempt to index null value; This value is null, so it does not have any indices.
   unknown values: req.extra_resources.labels-config[0].data.labels
 severity: SEVERITY_WARNING
 step: run hcl composition
@@ -33,7 +33,7 @@ metadata:
 ---
 apiVersion: render.crossplane.io/v1beta1
 kind: Result
-message: 'warnings: [src/main.hcl:27,49-52: Attempt to index null value]'
+message: 'warnings: [main.hcl:27,49-52: Attempt to index null value]'
 severity: SEVERITY_WARNING
 step: run hcl composition
 metadata:

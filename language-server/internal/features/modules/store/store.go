@@ -4,9 +4,12 @@ package store
 import (
 	"sync"
 
+	"github.com/crossplane-contrib/function-hcl/function/api"
 	"github.com/crossplane-contrib/function-hcl/language-server/internal/funchcl/target"
 	"github.com/hashicorp/hcl/v2"
 )
+
+type XRD = api.XRD
 
 func copyMap[T any](in map[string]T) map[string]T {
 	ret := map[string]T{}
@@ -14,12 +17,6 @@ func copyMap[T any](in map[string]T) map[string]T {
 		ret[k] = v
 	}
 	return ret
-}
-
-// XRD captures the API version and kind of the composite associated with the module.
-type XRD struct {
-	APIVersion string `json:"apiVersion"`
-	Kind       string `json:"kind"`
 }
 
 // Content contains information being tracked for a module.

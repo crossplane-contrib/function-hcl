@@ -18,7 +18,7 @@ spec:
         source: Inline
         debug: true
         hcl: |+
-          -- src/main.hcl --
+          -- main.hcl --
           locals {
             comp = req.composite  // req.composite contains the composite resource
             compName = comp.metadata.name

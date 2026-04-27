@@ -17,7 +17,7 @@ spec:
         kind: HclInput
         source: Inline
         hcl: |
-          -- src/main.hcl --
+          -- main.hcl --
           function toProviderK8sObject {
             arg name {
               description = "metadata name of the return object"

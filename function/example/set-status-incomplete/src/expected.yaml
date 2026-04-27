@@ -17,7 +17,7 @@ status:
     type: FullyResolved
   - type: HclDiagnostics
     lastTransitionTime: "2024-01-01T00:00:00Z"
-    message: "hcl.Diagnostics contains 1 warnings; src/main.hcl:20,32-39: Attempt to get attribute from null value"
+    message: "hcl.Diagnostics contains 1 warnings; main.hcl:20,32-39: Attempt to get attribute from null value"
     reason: Eval
     status: "False"
 ---
@@ -51,7 +51,7 @@ apiVersion: render.crossplane.io/v1beta1
 kind: Result
 metadata:
   name: r-0
-message: "src/main.hcl:19,12-21,6:discarded composite-status \nself.resource.status.atProvider.arn, src/main.hcl:20,32-39: Attempt to get attribute from null value; This value is null, so it does not have any attributes."
+message: "main.hcl:19,12-21,6:discarded composite-status \nself.resource.status.atProvider.arn, main.hcl:20,32-39: Attempt to get attribute from null value; This value is null, so it does not have any attributes."
 severity: SEVERITY_WARNING
 step: "run hcl composition"
 ---
@@ -59,7 +59,7 @@ apiVersion: render.crossplane.io/v1beta1
 kind: Result
 metadata:
   name: r-1
-message: "warnings: [src/main.hcl:20,32-39: Attempt to get attribute from null value]"
+message: "warnings: [main.hcl:20,32-39: Attempt to get attribute from null value]"
 severity: SEVERITY_WARNING
 step: "run hcl composition"
 ---

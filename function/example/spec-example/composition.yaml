@@ -17,7 +17,7 @@ spec:
         kind: HclInput
         source: Inline
         hcl: |
-          -- src/main.hcl --
+          -- main.hcl --
           resource my-s3-bucket {
             // self.name will be set to "my-s3-bucket"
 

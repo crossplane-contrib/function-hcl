@@ -1,0 +1,7 @@
+xrd:
+  apiVersion: example.com/v1
+  kind: FooBar
+libraryFiles:
+  - /tmp/foo.hcl
+  - lib/non-existent.hcl
+  - lib/bar.hcl

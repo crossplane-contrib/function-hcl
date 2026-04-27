@@ -2,56 +2,35 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
-	"github.com/crossplane-contrib/function-hcl/function/internal/evaluator"
+	"github.com/crossplane-contrib/function-hcl/function/internal/composition"
 	"github.com/crossplane-contrib/function-hcl/function/internal/format"
-	"github.com/hashicorp/hcl/v2"
 	"github.com/spf13/cobra"
-	"golang.org/x/tools/txtar"
 )
 
-func doAnalyze(files []evaluator.File) error {
-	e, err := evaluator.New(evaluator.Options{})
-	if err != nil {
-		return err
+func getDir(args []string) (string, error) {
+	if len(args) > 1 {
+		return "", fmt.Errorf("zero or exactly one argument expected, found %d", len(args))
 	}
-	diags := e.Analyze(files...)
-	for _, diag := range diags {
-		sev := "ERROR:"
-		if diag.Severity == hcl.DiagWarning {
-			sev = "WARN :"
-		}
-		log.Println("\t", sev, diag.Error())
+	dir := "."
+	if len(args) == 1 {
+		dir = args[0]
 	}
-	if diags.HasErrors() {
-		return fmt.Errorf("analysis failed")
-	}
-	return nil
+	return dir, nil
 }
 
 func analyzeCommand() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "analyze file1.hcl file2.hcl ...",
-		Short: "perform a static analysis of the supplied files",
+		Use:   "analyze [dir]",
+		Short: "perform a static analysis of the supplied directory (default is current directory)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("no files to analyze")
+			dir, err := getDir(args)
+			if err != nil {
+				return err
 			}
 			cmd.SilenceUsage = true
-			var files []evaluator.File
-			for _, file := range args {
-				contents, err := os.ReadFile(file)
-				if err != nil {
-					return err
-				}
-				files = append(files, evaluator.File{
-					Name:    file,
-					Content: string(contents),
-				})
-			}
-			return doAnalyze(files)
+			return composition.Analyze(dir)
 		},
 	}
 	return c
@@ -60,35 +39,18 @@ func analyzeCommand() *cobra.Command {
 func packageScriptCommand() *cobra.Command {
 	var skipAnalysis bool
 	c := &cobra.Command{
-		Use:   "package file1.hcl file2.hcl ...",
-		Short: "generate a txtar script for the supplied files",
+		Use:   "package [dir]",
+		Short: "generate a txtar script for the supplied directory (default is current directory)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) == 0 {
-				return fmt.Errorf("no files to package")
+			dir, err := getDir(args)
+			if err != nil {
+				return err
 			}
 			cmd.SilenceUsage = true
-			var archive txtar.Archive
-			var files []evaluator.File
-			for _, file := range args {
-				contents, err := os.ReadFile(file)
-				if err != nil {
-					return err
-				}
-				archive.Files = append(archive.Files, txtar.File{
-					Name: file,
-					Data: contents,
-				})
-				files = append(files, evaluator.File{
-					Name:    file,
-					Content: string(contents),
-				})
+			b, err := composition.Package(dir, skipAnalysis)
+			if err != nil {
+				return err
 			}
-			if !skipAnalysis {
-				if err := doAnalyze(files); err != nil {
-					return err
-				}
-			}
-			b := txtar.Format(&archive)
 			_, _ = os.Stdout.Write(b)
 			return nil
 		},

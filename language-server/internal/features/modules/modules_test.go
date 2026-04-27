@@ -368,12 +368,14 @@ template "config" {
 
 func TestXRDFile(t *testing.T) {
 	t.Run("loads XRD metadata when present", func(t *testing.T) {
-		xrdContent := `apiVersion: example.io/v1
-kind: XExample
+		xrdContent := `---
+xrd:
+  apiVersion: example.io/v1
+  kind: XExample
 `
 		fileSystem := createTestFS(map[string]string{
-			"with-xrd/main.hcl":  `locals { x = 1 }`,
-			"with-xrd/.xrd.yaml": xrdContent,
+			"with-xrd/main.hcl":         `locals { x = 1 }`,
+			"with-xrd/composition.yaml": xrdContent,
 		})
 
 		docStore := newMockDocStore()
@@ -437,8 +439,8 @@ kind: XExample
 	t.Run("handles malformed XRD gracefully", func(t *testing.T) {
 		badXRD := `this is not valid YAML: {[`
 		fileSystem := createTestFS(map[string]string{
-			"bad-xrd/main.hcl":  `locals { x = 1 }`,
-			"bad-xrd/.xrd.yaml": badXRD,
+			"bad-xrd/main.hcl":         `locals { x = 1 }`,
+			"bad-xrd/composition.yaml": badXRD,
 		})
 
 		docStore := newMockDocStore()
