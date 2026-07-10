@@ -12,7 +12,6 @@ import (
 	fnv1 "github.com/crossplane/function-sdk-go/proto/v1"
 	"github.com/crossplane/function-sdk-go/request"
 	"github.com/crossplane/function-sdk-go/response"
-	"github.com/pkg/errors"
 	"golang.org/x/tools/txtar"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -67,7 +66,7 @@ func (f *Fn) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (outRe
 	// setup logging and debugging
 	oxr, err := request.GetObservedCompositeResource(req)
 	if err != nil {
-		return nil, errors.Wrap(err, "get observed composite")
+		return nil, fmt.Errorf("get observed composite: %w", err)
 	}
 	tag := req.GetMeta().GetTag()
 	if tag != "" {
@@ -88,7 +87,7 @@ func (f *Fn) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (outRe
 	// get inputs
 	in := &input.HclInput{}
 	if err := request.GetInput(req, in); err != nil {
-		return nil, errors.Wrap(err, "unable to get input")
+		return nil, fmt.Errorf("unable to get input: %w", err)
 	}
 	if in.HCL == "" {
 		return nil, fmt.Errorf("input HCL was not specified")
@@ -127,12 +126,12 @@ func (f *Fn) RunFunction(_ context.Context, req *fnv1.RunFunctionRequest) (outRe
 		Debug:  debugThis,
 	})
 	if err != nil {
-		return nil, errors.Wrap(err, "create evaluator")
+		return nil, fmt.Errorf("create evaluator: %w", err)
 	}
 
 	evalRes, err := e.Eval(req, files...)
 	if err != nil {
-		return nil, errors.Wrap(err, "evaluate hcl")
+		return nil, fmt.Errorf("evaluate hcl: %w", err)
 	}
 	r, err := f.mergeResponse(res, evalRes)
 	return r, err
@@ -170,7 +169,7 @@ func (f *Fn) mergeResponse(res *fnv1.RunFunctionResponse, hclResponse *fnv1.RunF
 		}
 		s, err := structpb.NewStruct(ctxMap)
 		if err != nil {
-			return nil, errors.Wrap(err, "set response context")
+			return nil, fmt.Errorf("set response context: %w", err)
 		}
 		res.Context = s
 	}

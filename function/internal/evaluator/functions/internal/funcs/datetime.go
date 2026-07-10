@@ -156,7 +156,7 @@ func parseTimestamp(ts string) (time.Time, error) {
 			if err.LayoutElem == "" && err.ValueElem == "" && err.Message != "" {
 				// For some reason err.Message is populated with a ": " prefix
 				// by the time package.
-				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp%s", err.Message)
+				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: %w", err)
 			}
 			var what string
 			switch err.LayoutElem {
@@ -178,9 +178,9 @@ func parseTimestamp(ts string) (time.Time, error) {
 				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: missing required time introducer 'T'")
 			case ":", "-":
 				if err.ValueElem == "" {
-					return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: end of string where %q is expected", err.LayoutElem)
+					return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: end of string where %q is expected: %w", err.LayoutElem, err)
 				} else {
-					return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: found %q where %q is expected", err.ValueElem, err.LayoutElem)
+					return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: found %q where %q is expected: %w", err.ValueElem, err.LayoutElem, err)
 				}
 			default:
 				// Should never get here, because time.RFC3339 includes only the
@@ -189,9 +189,9 @@ func parseTimestamp(ts string) (time.Time, error) {
 				what = "timestamp segment"
 			}
 			if err.ValueElem == "" {
-				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: end of string before %s", what)
+				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: end of string before %s: %w", what, err)
 			} else {
-				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: cannot use %q as %s", err.ValueElem, what)
+				return time.Time{}, fmt.Errorf("not a valid RFC3339 timestamp: cannot use %q as %s: %w", err.ValueElem, what, err)
 			}
 		}
 		return time.Time{}, err
