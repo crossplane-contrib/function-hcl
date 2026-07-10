@@ -9,7 +9,6 @@ import (
 	"github.com/crossplane-contrib/function-hcl/function/internal/evaluator"
 	"github.com/ghodss/yaml"
 	"github.com/hashicorp/hcl/v2"
-	"github.com/pkg/errors"
 	"golang.org/x/tools/txtar"
 )
 
@@ -91,10 +90,10 @@ func (l *loader) loadArchive(dir string) (*txtar.Archive, []evaluator.File, erro
 func (l *loader) checkDir(dir string) (string, error) {
 	st, err := l.fs.Stat(dir)
 	if err != nil {
-		return "", errors.Wrapf(err, "stat %s", dir)
+		return "", fmt.Errorf("stat %s: %w", dir, err)
 	}
 	if !st.IsDir() {
-		return "", errors.Errorf("%s is not a directory", dir)
+		return "", fmt.Errorf("%s is not a directory", dir)
 	}
 	return dir, nil
 }
@@ -110,7 +109,7 @@ func (l *loader) loadConfig(dir string) (*Config, error) {
 		return nil, err
 	}
 	if st.IsDir() {
-		return nil, errors.Errorf("%s is a directory", file)
+		return nil, fmt.Errorf("%s is a directory", file)
 	}
 	b, err := l.fs.ReadFile(file)
 	if err != nil {
@@ -118,7 +117,7 @@ func (l *loader) loadConfig(dir string) (*Config, error) {
 	}
 	err = yaml.Unmarshal(b, &cfg)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unmarshal contents of %s", file)
+		return nil, fmt.Errorf("unmarshal contents of %s: %w", file, err)
 	}
 	return &cfg, nil
 }
@@ -138,7 +137,7 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 		file := filepath.Join(dir, entry.Name())
 		s, err := l.fs.Stat(file)
 		if err != nil {
-			return nil, errors.Wrapf(err, "stat %s", file)
+			return nil, fmt.Errorf("stat %s: %w", file, err)
 		}
 		if s.IsDir() {
 			continue
@@ -153,7 +152,7 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 				log.Println(errMsg)
 				continue
 			}
-			return nil, errors.New(errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 		file = filepath.Clean(filepath.Join(dir, file))
 		s, err := l.fs.Stat(file)
@@ -163,7 +162,7 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 				log.Println(errMsg)
 				continue
 			}
-			return nil, errors.New(errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 		if s.IsDir() {
 			errMsg := fmt.Sprintf("library file %s cannot be a directory", file)
@@ -171,7 +170,7 @@ func (l *loader) fileList(dir string, cfg *Config) ([]string, error) {
 				log.Println(errMsg)
 				continue
 			}
-			return nil, errors.New(errMsg)
+			return nil, fmt.Errorf("%s", errMsg)
 		}
 		files = append(files, file)
 	}
