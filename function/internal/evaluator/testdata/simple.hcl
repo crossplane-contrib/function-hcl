@@ -23,6 +23,10 @@ resource primary-bucket {
     kind : "S3Bucket"
     metadata : {
       name : invoke("makeName", { base = name, suffix = suffix})
+      labels : {
+        foo: "bar"
+        baz: null
+      }
     }
     spec : {
       forProvider : {

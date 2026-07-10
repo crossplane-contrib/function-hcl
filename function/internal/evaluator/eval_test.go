@@ -67,6 +67,18 @@ func TestPositiveEval(t *testing.T) {
 				assert.Equal(t, 2, len(res.Desired.Resources))
 				assert.Contains(t, res.Desired.Resources, "primary-bucket")
 				assert.Contains(t, res.Desired.Resources, "secondary-bucket")
+
+				pb := res.Desired.Resources["primary-bucket"]
+				obj := pb.GetResource().AsMap()
+				md := obj["metadata"]
+				mdObj, ok := md.(map[string]any)
+				require.True(t, ok)
+				labels := mdObj["labels"]
+				labelsObj, ok := labels.(map[string]any)
+				require.True(t, ok)
+				assert.Equal(t, "bar", labelsObj["foo"])
+				_, ok = labelsObj["baz"]
+				assert.False(t, ok)
 			},
 		},
 		{
