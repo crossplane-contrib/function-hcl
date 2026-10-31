@@ -1,5 +1,7 @@
 # function-hcl
 
+test the build
+
 A crossplane function that uses an opinionated DSL built on [HCL](https://github.com/hashicorp/hcl) 
 to model desired resources. It has more than a passing familiarity with Terraform syntax.
 
