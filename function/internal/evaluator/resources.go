@@ -54,6 +54,12 @@ func (e *Evaluator) processGroup(ctx *hcl.EvalContext, content *hcl.BodyContent)
 			curDiags = e.processComposite(ctx, b)
 		case blockRequirement:
 			curDiags = e.processRequirement(ctx, b)
+		case blockValidation:
+			// processValidations evaluates the group condition separately, and a condition that
+			// calls timestamp() or uuid() can change between the two evaluations
+			if !e.validated[b.DefRange] {
+				curDiags = e.processValidation(ctx, b)
+			}
 		case blockLocals:
 			// already processed
 		case blockFunction:

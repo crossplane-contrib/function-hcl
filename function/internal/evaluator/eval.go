@@ -50,6 +50,12 @@ func (e *Evaluator) doEval(in *fnv1.RunFunctionRequest, files ...File) (_ *fnv1.
 		return nil, diags.Append(hclutils.Err2Diag(err))
 	}
 
+	ds = e.processValidations(ctx, mergedBody)
+	diags = diags.Extend(ds)
+	if ds.HasErrors() {
+		return nil, diags
+	}
+
 	// process top-level blocks as a group
 	ds = e.processGroup(ctx, mergedBody)
 	diags = diags.Extend(ds)

@@ -26,3 +26,4 @@ The guide covers:
 12. [Context](./context/) -- sharing data with downstream pipeline steps
 13. [Requirements](./requirements/) -- requesting extra resources from Crossplane
 14. [User-Defined Functions](./user-functions/) -- writing and invoking custom functions
+15. [Validation](./validation/) -- rejecting invalid input with an error message

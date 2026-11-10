@@ -114,6 +114,12 @@ resources buckets {
 
 The `each.key` and `each.value` variables work the same way.
 
+## Validation
+
+Terraform's variable `validation` blocks become top-level [`validation`](../language-guide/validation/)
+blocks that check `req.composite`. Prefer rules in the XRD schema, which reject invalid input before it
+is stored; a `validation` block covers rules the schema cannot express.
+
 ## No equivalent in function-hcl
 
 These Terraform concepts have no direct equivalent:
@@ -122,4 +128,3 @@ These Terraform concepts have no direct equivalent:
 - **Backend configuration** -- Crossplane manages state
 - **Provisioners** -- not applicable
 - **`moved` / `import` blocks** -- Crossplane handles resource lifecycle
-- **Variable validation blocks** -- use XRD schemas instead

@@ -98,6 +98,11 @@ func init() {
 			Description: lang.PlainText("assign a value in the context"),
 		}
 	}
+	validationBlock := func() *schema.BasicBlockSchema {
+		return &schema.BasicBlockSchema{
+			Description: lang.PlainText("fail the evaluation with a message when a condition is false"),
+		}
+	}
 	groupBlocks := func() map[string]*schema.BasicBlockSchema {
 		return map[string]*schema.BasicBlockSchema{
 			"locals": localsBlock(),
@@ -122,8 +127,9 @@ func init() {
 					},
 				},
 			},
-			"composite": compositeBlock(),
-			"context":   contextBlock(),
+			"composite":  compositeBlock(),
+			"context":    contextBlock(),
+			"validation": validationBlock(),
 			"requirement": {
 				Description: lang.PlainText("require an existing resource"),
 				Labels: []*schema.LabelSchema{
@@ -257,6 +263,21 @@ func init() {
 				"locals": localsBlock(),
 				"select": {
 					Description: lang.PlainText("selection criteria"),
+				},
+			},
+		},
+		"validation": {
+			Description: lang.PlainText("input validation"),
+			Attributes: map[string]*schema.AttributeSchema{
+				"condition": {
+					Description: lang.PlainText("must be true, otherwise the evaluation fails with error_message"),
+					IsRequired:  true,
+					Constraint:  schema.Bool{},
+				},
+				"error_message": {
+					Description: lang.PlainText("the error returned when condition is false"),
+					IsRequired:  true,
+					Constraint:  schema.String{},
 				},
 			},
 		},

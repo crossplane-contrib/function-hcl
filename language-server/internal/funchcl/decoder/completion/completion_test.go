@@ -44,7 +44,7 @@ func expectCandidateLabels(t *testing.T, text string, xrd *xrd, pos hcl.Pos, exp
 func TestCompletionEmptyFile(t *testing.T) {
 	candidates := expectCandidateLabels(t, "", nil,
 		hcl.Pos{Line: 1, Column: 1},
-		[]string{"composite", "context", "function", "group", "locals", "requirement", "resource", "resources"},
+		[]string{"composite", "context", "function", "group", "locals", "requirement", "resource", "resources", "validation"},
 	)
 	for _, c := range candidates.List {
 		assert.Equal(t, lang.BlockCandidateKind, c.Kind,
@@ -130,6 +130,32 @@ resource vpc {
 			End:      hcl.Pos{Line: 2, Column: 14, Byte: 28},
 		}
 		assert.EqualValues(t, expectedRange, candidates.List[0].TextEdit.Range)
+	})
+}
+
+func TestCompletionUnderValidation(t *testing.T) {
+	t.Run("top level", func(t *testing.T) {
+		text := `
+validation {
+
+}
+`
+		expectCandidateLabels(t, text, nil,
+			hcl.Pos{Line: 2, Column: 1},
+			[]string{"condition", "error_message"})
+	})
+
+	t.Run("in a group", func(t *testing.T) {
+		text := `
+group {
+  validation {
+
+  }
+}
+`
+		expectCandidateLabels(t, text, nil,
+			hcl.Pos{Line: 3, Column: 1},
+			[]string{"condition", "error_message"})
 	})
 }
 

@@ -90,8 +90,27 @@ group {
   locals { ... }                # optional
   resource <name> { ... }       # any number
   resources <name> { ... }      # any number
+  validation { ... }            # any number
 }
 ```
+
+### `validation`
+
+```hcl
+validation {
+  condition     = <bool>        # required
+  error_message = <string>      # required
+}
+```
+
+- Can appear at top level or inside `group`.
+- Runs before every other block, so a failing rule is reported even when a resource that reads the same
+  input fails to evaluate.
+- `condition` false: the evaluation fails with `validation failed; <error_message>`. Only the first
+  failing block is reported.
+- `condition` not known yet: the block is skipped with a warning.
+- `condition` with a known type other than bool, or `error_message` with a known type other than string:
+  the evaluation fails, whatever the condition's value.
 
 ### `composite status`
 

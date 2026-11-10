@@ -29,6 +29,7 @@ func TestTopLevelBlocks(t *testing.T) {
 		"context",     // Write to context (spec section)
 		"requirement", // Extra resources requirements (spec section)
 		"function",    // User-defined functions (spec section)
+		"validation",  // Validate the input (spec section)
 	}
 
 	for _, blockType := range expectedBlocks {
@@ -99,8 +100,8 @@ func TestGroupBlockSchema(t *testing.T) {
 	assert.Contains(t, groupSchema.Attributes, "condition",
 		"group block should support 'condition' attribute per spec")
 
-	// Per spec: group blocks can contain resources, resource, locals, composite, context, requirement
-	expectedNested := []string{"resource", "resources", "group", "locals", "composite", "context", "requirement"}
+	// Per spec: group blocks can contain resources, resource, locals, composite, context, requirement, validation
+	expectedNested := []string{"resource", "resources", "group", "locals", "composite", "context", "requirement", "validation"}
 	for _, nested := range expectedNested {
 		assert.Contains(t, groupSchema.NestedBlocks, nested,
 			"group block should support %s nested block per spec", nested)
@@ -162,6 +163,34 @@ func TestRequirementBlockSchema(t *testing.T) {
 	// Per spec: requirement blocks can have locals
 	assert.Contains(t, requirementSchema.NestedBlocks, "locals",
 		"requirement block should support 'locals' nested block per spec")
+}
+
+// TestValidationBlockSchema verifies validation block schema per spec
+func TestValidationBlockSchema(t *testing.T) {
+	validationSchema := std["validation"]
+	require.NotNil(t, validationSchema, "validation block should have schema")
+
+	// Per spec: validation blocks must have condition and error_message attributes
+	for _, attr := range []string{"condition", "error_message"} {
+		require.Contains(t, validationSchema.Attributes, attr,
+			"validation block must have '%s' attribute per spec", attr)
+		assert.True(t, validationSchema.Attributes[attr].IsRequired,
+			"%s attribute should be required per spec", attr)
+	}
+
+	// Per spec: validation blocks have no nested blocks
+	assert.Empty(t, validationSchema.NestedBlocks,
+		"validation block should not have nested blocks per spec")
+
+	// Per spec: validation blocks appear at the top level and in groups only
+	for blockType, blockSchema := range std {
+		_, ok := blockSchema.NestedBlocks["validation"]
+		if blockType == "" || blockType == "group" {
+			assert.True(t, ok, "%q should support 'validation' nested block per spec", blockType)
+		} else {
+			assert.False(t, ok, "%q should not support 'validation' nested block per spec", blockType)
+		}
+	}
 }
 
 // TestSelectBlockSchema verifies select block schema per spec

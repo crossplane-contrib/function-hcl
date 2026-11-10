@@ -48,6 +48,7 @@ const (
 	blockArg         = functions.BlockArg
 	blockRequirement = "requirement"
 	blockSelect      = "select"
+	blockValidation  = "validation"
 
 	attrBody        = "body"
 	attrCondition   = "condition"
@@ -59,6 +60,7 @@ const (
 	attrKind        = "kind"
 	attrMatchName   = "matchName"
 	attrMatchLabels = "matchLabels"
+	attrErrMessage  = "error_message"
 
 	blockLabelStatus     = "status"
 	blockLabelConnection = "connection"
@@ -99,6 +101,7 @@ const (
 	discardTypeReady        DiscardType = "resource-ready"
 	discardTypeContext      DiscardType = "context"
 	discardTypeRequirement  DiscardType = "requirement"
+	discardTypeValidation   DiscardType = "validation"
 )
 
 // DiscardReason describes the reason for the elision.
@@ -157,6 +160,7 @@ type Evaluator struct {
 	contexts                 []Object                          // desired context values
 	ready                    map[string]int32                  // readiness indicator for resource
 	discards                 []DiscardItem                     // list of things discarded from output
+	validated                map[hcl.Range]bool                // validation blocks evaluated, keyed by definition range
 }
 
 // New creates an evaluator.
@@ -175,6 +179,7 @@ func New(opts Options) (*Evaluator, error) {
 		desiredResources: map[string]*structpb.Struct{},
 		requirements:     map[string]*fnv1.ResourceSelector{},
 		ready:            map[string]int32{},
+		validated:        map[hcl.Range]bool{},
 	}, nil
 }
 

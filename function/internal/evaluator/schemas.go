@@ -17,6 +17,7 @@ var (
 		{Type: blockComposite, LabelNames: []string{"object"}},
 		{Type: blockContext},
 		{Type: blockRequirement, LabelNames: []string{"name"}},
+		{Type: blockValidation},
 	}
 
 	topOnlyBlocks = []hcl.BlockHeaderSchema{
@@ -44,6 +45,7 @@ var schemasByBlockType = map[string]*hcl.BodySchema{
 	blockArg:         functions.ArgSchema(),
 	blockRequirement: requirementSchema(),
 	blockSelect:      selectSchema(),
+	blockValidation:  validationSchema(),
 }
 
 func topLevelSchema() *hcl.BodySchema {
@@ -149,6 +151,15 @@ func selectSchema() *hcl.BodySchema {
 			{Name: attrKind, Required: true},
 			{Name: attrMatchName},
 			{Name: attrMatchLabels},
+		},
+	}
+}
+
+func validationSchema() *hcl.BodySchema {
+	return &hcl.BodySchema{
+		Attributes: []hcl.AttributeSchema{
+			{Name: attrCondition, Required: true},
+			{Name: attrErrMessage, Required: true},
 		},
 	}
 }

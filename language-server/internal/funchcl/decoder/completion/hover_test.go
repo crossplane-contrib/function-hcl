@@ -97,6 +97,23 @@ resource vpc {
 		assert.Contains(t, data.Content.Value(), "**resource**")
 	})
 
+	t.Run("validation block type", func(t *testing.T) {
+		text := `
+validation {
+  condition     = true
+  error_message = "never shown"
+}
+`
+		data := requireHover(t, text, nil,
+			hcl.Pos{Line: 1, Column: 5})
+		assert.Contains(t, data.Content.Value(), "**validation**")
+
+		data = requireHover(t, text, nil,
+			hcl.Pos{Line: 3, Column: 6})
+		assert.Contains(t, data.Content.Value(), "**error_message**")
+		assert.Contains(t, data.Content.Value(), "the error returned when condition is false")
+	})
+
 	t.Run("composite block type", func(t *testing.T) {
 		t.Skip("nested block type/label hover has position matching issue")
 		text := `

@@ -63,6 +63,15 @@ returns a `Fatal` result that surfaces on the composite resource.
 | Bad invocation        | `invoke` called with missing required arguments or unrecognized argument names |
 | Stack overflow        | Call stack exceeds 100 frames (infinite recursion protection)                  |
 
+## Validation Errors
+
+| Error                      | Description                                                                                                       |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------|
+| Validation failed          | A `validation` condition is `false`. The error is `validation failed; <error_message>`                            |
+| Message not evaluated      | A `validation` condition is `false` and its `error_message` cannot be built. The error says why, after `validation failed;` |
+| Non-boolean condition      | A `validation` condition has a known type other than bool                                                        |
+| Non-string message         | A `validation` `error_message` has a known type other than string, whatever the condition                         |
+
 ## Context Errors
 
 | Error                      | Description                                                                 |
