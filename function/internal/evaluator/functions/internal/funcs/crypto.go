@@ -160,6 +160,7 @@ var RsaDecryptFunc = function.New(&function.Spec{
 			return cty.UnknownVal(cty.String), function.NewArgErrorf(1, "invalid private key type %t", rawKey)
 		}
 
+		//nolint:staticcheck // SA1019: rsadecrypt is defined as PKCS#1 v1.5 for Terraform compatibility; OAEP would be a different function
 		out, err := rsa.DecryptPKCS1v15(nil, privateKey, b)
 		if err != nil {
 			return cty.UnknownVal(cty.String), fmt.Errorf("failed to decrypt: %s", err)
